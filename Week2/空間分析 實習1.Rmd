@@ -1,0 +1,31 @@
+###空間分析　 實習1
+####地理二　B06208001　龔泓愷
+
+> Q1：繪製一張圖表，比較台北市各行政區的麥當勞與肯德基家數；並解釋其圖表呈現的意涵。
+
+```{r results='hide', message = F, warning = F}
+library(ggplot2)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+FastFood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
+```
+```{r warning = F}
+data <- FastFood@data
+#table to data.frame
+table <- as.data.frame.matrix(xtabs(~TOWN+STORE, data))
+#add rownames to column 'TOWN' with dplyr
+table <- add_rownames(table,"TOWN")
+#make data.frame longer with tidyr
+table <- gather(table, STORE, COUNT, -TOWN)
+
+ggplot(table, aes(x = TOWN, y = COUNT, fill = STORE)) +
+  geom_col(position = 'dodge') + 
+  scale_x_discrete('行政區') + scale_y_continuous('間數') +
+  scale_fill_discrete('速食店', labels = c('肯德基', '麥當勞')) +
+  ggtitle('Fastfood Restaurants in Taipei')
+```
+
+從上圖看來，台北市所有行政區麥當勞的數量皆多於肯德基之數量。
+麥當勞數量最多的行政區位於大安區，而肯德基數量最多的行政區則位於中山區。
+相反地，麥當勞數量最少的行政區為大同、南港與萬華區，在南港區則甚至沒有肯德基。
