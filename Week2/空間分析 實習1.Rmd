@@ -11,9 +11,9 @@ library(dplyr)
 FastFood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
 ```
 ```{r warning = F}
-data <- FastFood@data
+FFdata <- FastFood@data
 #table to data.frame
-table <- as.data.frame.matrix(xtabs(~TOWN+STORE, data))
+table <- as.data.frame.matrix(xtabs(~TOWN+STORE, FFdata))
 #add rownames to column 'TOWN' with dplyr
 table <- add_rownames(table,"TOWN")
 #make data.frame longer with tidyr
@@ -29,3 +29,28 @@ ggplot(table, aes(x = TOWN, y = COUNT, fill = STORE)) +
 從上圖看來，台北市所有行政區麥當勞的數量皆多於肯德基之數量。    
 麥當勞數量最多的行政區位於大安區，而肯德基數量最多的行政區則位於中山區。    
 相反地，麥當勞數量最少的行政區為大同、南港與萬華區，在南港區則甚至沒有肯德基。    
+
+***
+
+> Q2：繪製地圖，以分級符號圖顯示麥當勞與肯德基在99年銷售規模(Type_99)的空間分布。
+
+```{r results = 'hide', message = F, warning = F}
+library(spdep)
+library(GISTools)
+TOWN <- readOGR(dsn = "./data", layer = "Taipei_Vill", encoding="utf8")
+```
+```{r message = F, warning = F}
+#fortify the vertex
+TOWN.f <- fortify(TOWN, region="TOWN")
+# merge(x, y, by.x, by.y): merge two data frames
+TOWN.f <- merge(TOWN.f, TOWN@data, by.x = "id", by.y = "TOWN")
+
+ggplot() +
+  geom_polygon(data = TOWN.f, aes(x = long, y = lat, group = group), fill = '#D2B48C', color = 'white') +
+  geom_point(data = FFdata, aes(x = X_COOR, y = Y_COOR, size = TYPE_99, color = STORE)) +
+  scale_size_discrete('99年銷售規模') +
+  scale_color_manual('速食店', labels = c('肯德基', '麥當勞'), values = c('#F08080', '#4682B4')) +
+  ggtitle('麥當勞與肯德基99年銷售規模之分級符號圖') +
+  coord_fixed(1.0) + theme_minimal()
+```
+
