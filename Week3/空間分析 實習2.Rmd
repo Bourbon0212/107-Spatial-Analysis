@@ -32,6 +32,7 @@ Pollution_map = function(arg1){
   EPA.data$SiteType <- droplevels(EPA.data$SiteType)#drop unuse levels
   boxplot(PSI ~ SiteType, data = EPA.data)
   par(mfrow = c(1,1))
+  return(PSI.c)
 }
 ```
 ```{r message = F}
