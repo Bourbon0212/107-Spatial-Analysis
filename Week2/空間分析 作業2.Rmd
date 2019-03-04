@@ -1,17 +1,26 @@
 ###空間分析　 作業2
 ####地理二　B06208001　龔泓愷
 
-> Q2：繪製一張圖表，比較各行政區的麥當勞與肯德基在90-99年的規模變遷趨勢；並解釋其圖表呈現的意涵。
+> Q1：定義速食店密度： (麥當勞+肯德基)/人口數。以里為單位，繪製地圖呈現速食店密度的空間分布。  
 
 ```{r results='hide', message = F, warning = F}
 library(ggplot2)
 library(rgdal)
 library(tidyr)
 library(dplyr)
+library(spdep)
+library(GISTools)
 FastFood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
+TOWN <- readOGR(dsn = "./data", layer = "Taipei_Vill", encoding="utf8")
+FFdata <- FastFood@data
+Tdata <- TOWN@data
 ```
+
+***
+
+> Q2：繪製一張圖表，比較各行政區的麥當勞與肯德基在90-99年的規模變遷趨勢；並解釋其圖表呈現的意涵。
+
 ```{r warning = F}
-data <- FastFood@data
 # change from factor to numeric
 data$TYPE_90 <- as.numeric(as.character(data$TYPE_90))
 data$TYPE_99 <- as.numeric(as.character(data$TYPE_99))

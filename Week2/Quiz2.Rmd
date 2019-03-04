@@ -1,0 +1,31 @@
+---
+title: "Quiz2"
+author: "b06208001 龔泓愷"
+date: "2019年3月4日"
+output: html_document
+---
+```{r results='hide', message = F, warning = F}
+library(ggplot2)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(spdep)
+library(GISTools)
+FastFood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
+TOWN <- readOGR(dsn = "./data", layer = "Taipei_Vill", encoding="utf8")
+```
+```{r message = F, warning = F}
+FFdata <- FastFood@data
+#fortify the vertex
+TOWN.f <- fortify(TOWN, region="TOWN")
+# merge(x, y, by.x, by.y): merge two data frames
+TOWN.f <- merge(TOWN.f, TOWN@data, by.x = "id", by.y = "TOWN")
+
+ggplot() +
+  geom_polygon(data = TOWN.f, aes(x = long, y = lat, group = group), fill = '#D2B48C', color = 'white') +
+  geom_point(data = FFdata, aes(x = X_COOR, y = Y_COOR, size = TYPE_99, color = STORE)) +
+  scale_size_discrete('99年銷售規模') +
+  scale_color_manual('速食店', labels = c('肯德基', '麥當勞'), values = c('#F08080', '#4682B4')) +
+  ggtitle('麥當勞與肯德基99年銷售規模之分級符號圖') +
+  coord_fixed(1.0) + theme_minimal()
+```

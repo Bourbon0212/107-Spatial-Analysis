@@ -1,0 +1,42 @@
+###空間分析　 實習2
+####地理二　B06208001　龔泓愷
+
+> 利用 GISTools 建立繪製地圖的函數Pollution_Map ( agr1 )：
+
+```{r results='hide', message = F, warning = F}
+library(GISTools)
+library(rgdal)
+library(tidyr)
+```
+```{r}
+Pollution_map = function(arg1){
+  #data preparation
+  EPA.STN <- readOGR(dsn = "./data", layer = "EPA_STN1", encoding="utf8")
+  Popn.TWN <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+  EPA.data <- EPA.STN@data
+  Popn.data <- Popn.TWN@data
+  #statistics calculation
+  PSI.c <- qnorm(arg1, mean(EPA.data$PSI), sd(EPA.data$PSI), lower.tail = F)
+  red <- subset(EPA.STN, EPA.STN$PSI >= PSI.c)#severe pollution
+  blue <- subset(EPA.STN, EPA.STN$PSI < PSI.c)
+  #plot map
+  par(mfrow = c(1,2))
+  par(mar = c(0,0,0,0))
+  plot(Popn.TWN, col='#D2B48C', border="grey", bg='white')#plot taiwan
+  plot(red, add=TRUE, col= 'red', pch = 16)#plot point
+  plot(blue, add=TRUE, col= 'blue', pch = 16)
+  #box plot
+  par(mar = c(5,4,4,4), las = 2)
+  EPA.data <- subset(EPA.data, PSI > PSI.c)
+  EPA.data <- subset(EPA.data, SiteType %in% c('一般測站', '工業測站', '交通測站'))
+  EPA.data$SiteType <- droplevels(EPA.data$SiteType)#drop unuse levels
+  boxplot(PSI ~ SiteType, data = EPA.data)
+  par(mfrow = c(1,1))
+}
+```
+```{r message = F}
+Pollution_map(0.3)
+Pollution_map(0.5)
+```
+
+
