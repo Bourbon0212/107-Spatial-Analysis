@@ -60,25 +60,31 @@ title('台灣人口密度地圖')
 ### OpenStreepMap ###
 library(OpenStreetMap)
 library(dplyr)
-# define upper left, lower right corners
-#ul <- c(25.324075, 120.935067)
-#lr <- c(24.236039, 122.035227)
-ul <- as.vector(cbind(bbox(TWN.LongLat)[2,2], bbox(TWN.LongLat)[1,1])) # lat-long coord
-lr <- as.vector(cbind(bbox(TWN.LongLat)[2,1], bbox(TWN.LongLat)[1,2])) # lat-long coord
+
+#elder proportion
+Popn.data <- Popn.TWN@data
+Popn.data$E.Prop = Popn.data$A65UP_CNT / Popn.data$CENCUS
+#mark high elder prop
+Popn.TAIPEI <- subset(Popn.data, Popn.data$COUNTY %in% c('臺北市', '新北市', '桃園市', '基隆市', '宜蘭縣')) %>% #選出大台北
+  arrange(desc(E.Prop))
+
+old.TOWN <- Popn.TAIPEI[1:15,]$TOWN
+old.TOWN <- subset(Popn.TWN, Popn.TWN$TOWN %in% old.TOWN & Popn.TWN$COUNTY %in% c('臺北市', '新北市', '桃園市', '基隆市', '宜蘭縣'))
+
+
+#use locator to get the ul lr from Popn.TWN
+ul <- c(25.324075, 120.935067)
+lr <- c(24.236039, 122.035227)
+
 # download the map tile
 MyMap <- openmap(ul,lr,9, "esri-topo")
 # now plot the layer and the backdrop
 par(mar = c(0,0,0,0))
-plot(MyMap, removeMargin=FALSE)
-plot(Popn.TWN, add = T)#plot taiwan
+plot(MyMap, removeMargin=F)
+plot(spTransform(Popn.TWN, osm()), add = T)#plot taiwan
+plot(spTransform(old.TOWN, osm()), add = T,col = rgb(red = 1, green = 0, blue = 0, alpha = 0.6))#plot old.TOWN
 
-#elder proportion
-Popn.data$E.Prop = Popn.data$A65UP_CNT / Popn.data$CENCUS
-#mark high elder prop
-Popn.data <- Popn.data %>%
-  arrange(desc(E.Prop))
-Popn.data$MARK <- 0
-Popn.data[1:76,]$MARK <- 1#前面20%標記為1
+
 #plot
 
 #Q2-3

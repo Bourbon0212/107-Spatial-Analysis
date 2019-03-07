@@ -10,6 +10,7 @@ library(ggplot2)
 library(sp)
 library(gridExtra)
 library(dplyr)
+library(OpenStreetMap)
 EPA.STN <- readOGR(dsn = "./data", layer = "EPA_STN1", encoding="utf8")
 EPA.STN <- spTransform(EPA.STN, CRS("+proj=longlat +datum=WGS84 +no_defs "))#轉成WGS84，因為EPA欄位只有經緯度
 Popn.TWN <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
@@ -71,6 +72,31 @@ title('台灣人口密度地圖')
 ***
 
 > Q2-2：繪製大台北人口老化地圖
+
+```{r}
+#elder proportion
+Popn.TWN$E.Prop = Popn.TWN$A65UP_CNT / Popn.TWN$CENCUS
+Popn.data <- Popn.TWN@data
+#mark high elder prop
+Popn.TAIPEI <- subset(Popn.data, Popn.data$COUNTY %in% c('臺北市', '新北市', '桃園市', '基隆市', '宜蘭縣')) %>% #選出大台北
+  arrange(desc(E.Prop))
+
+old.TOWN <- Popn.TAIPEI[1:15,]
+old.TOWN <- subset(Popn.TWN, Popn.TWN$TOWN_ID %in% old.TOWN$TOWN_ID)
+
+#use locator to get the ul lr from Popn.TWN
+ul <- c(25.324075, 120.935067)
+lr <- c(24.236039, 122.035227)
+
+# download the map tile
+MyMap <- openmap(ul,lr,9, "esri-topo")
+# now plot the layer and the backdrop
+par(mar = c(0,0,0,0))
+plot(MyMap, removeMargin=F)
+plot(spTransform(Popn.TWN, osm()), add = T)#plot taiwan
+plot(spTransform(old.TOWN, osm()), add = T,col = rgb(red = 1, green = 0, blue = 0, alpha = 0.6))#plot old.TOWN
+```
+
 
 ***
 
