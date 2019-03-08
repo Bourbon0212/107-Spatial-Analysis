@@ -56,14 +56,14 @@ Pollution_map(0.5)
 ```{r}
 Popn.TWN <- spTransform(Popn.TWN, CRS("+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs "))#轉回TWD97
 #calculate cencus total
-Popn.TWN$CENCUS <- as.numeric(as.character(Popn.TWN$A0A14_CNT + Popn.TWN$A15A64_CNT + Popn.TWN$A65UP_CNT))
+Popn.TWN$CENCUS <- Popn.TWN$A0A14_CNT + Popn.TWN$A15A64_CNT + Popn.TWN$A65UP_CNT
 #calcuate town area
 Popn.TWN$AREA <- poly.areas(Popn.TWN) / 10^6
 Popn.TWN$DENSITY <- Popn.TWN$CENCUS / Popn.TWN$AREA
 #plot map
 vacant.shades = auto.shading(Popn.TWN$DENSITY, n = 6, cutter = quantileCuts)
 choropleth(Popn.TWN, Popn.TWN$DENSITY, shading=vacant.shades)
-choro.legend(-220000,2600000,vacant.shades)
+choro.legend(-220000,2600000,vacant.shades, cex = 0.6)
 map.scale(302000,2339000,300000, "300km",3,1) 
 north.arrow(386000,2850000,10000,col= 'black') 
 title('台灣人口密度地圖')
@@ -111,7 +111,7 @@ Popn.data <- Popn.data %>%
     DENSITY < 2000 ~ '低度密集'
   ))
 #elder proportion
-Popn.data$E.Prop = Popn.data$A65UP_CNT / Popn.data$CENCUS
+#Popn.data$E.Prop = Popn.data$A65UP_CNT / Popn.data$CENCUS
 #box plot
 ggplot(data = subset(Popn.data, Popn.data$D.STATUS %in% c('高度密集', '低度密集'))) +
   geom_boxplot(aes(x = D.STATUS, y = E.Prop))
