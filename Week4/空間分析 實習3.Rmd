@@ -24,6 +24,7 @@ print(as.character(MIC.MAX@data$ALIAS))
 plot(Taipei_Vill, col='grey', border="white", bg='white')
 points(MIC, col = 'blue', pch = 16, cex = 0.3) #一般的麥當勞
 points(MIC.MAX, col = 'red', pch = 16) #MAX的麥當勞
+text(MIC.MAX, labels=MIC.MAX$ALIAS, cex= 0.7,pos=2) #標示
 map.scale(289702.6, 2764163, 4000, "4km", 4, 1) 
 north.arrow(289702.6, 2767730, 1000, col = 'grey')
 title('台北市麥當勞連鎖密度地圖')
