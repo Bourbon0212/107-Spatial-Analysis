@@ -1,0 +1,58 @@
+---
+title: "GISTools"
+author: "b06208001 龔泓愷"
+date: "2019年3月11日"
+output: html_document
+---
+```{r results='hide', message = F, warning = F}
+library(GISTools)
+library(rgdal)
+library(dplyr)
+FastFood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
+Popn.TWN <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+```
+
+> gIntersection(sp1, sp2, byid = T)
+
+```{r}
+index <- Popn.TWN$TOWN == '大安區' & Popn.TWN$COUNTY == '臺北市'
+Daan <- Popn.TWN[index,]
+
+FF.Daan <- gIntersection(Daan, FastFood, byid = T)
+FF.Daan <- data.frame(FF.Daan)
+
+FF.Daan_rowname <- rownames(FF.Daan)
+FF.Daan_rowname <- strsplit(FF.Daan_rowname, ' ') #return a list
+
+TOWN_id <- as.numeric(unlist(lapply(FF.Daan_rowname, function(x) x[1]))) #222 大安區
+FF_id <- as.numeric(unlist(lapply(FF.Daan_rowname, function(x) x[2]))) #速食店代號
+
+result <- FastFood[FF_id,]
+
+xtabs(~STORE, result)
+```
+
+***
+
+> gBuffer(sp, width, byid = F)
+
+```{r}
+AOI <- FastFood[FastFood$STORE == "MIC",] 
+AOI.buf <- gBuffer(AOI, width = 1000)
+plot(AOI.buf, col = 'grey')
+points(AOI, col = "blue", pch = 16)
+```
+
+***
+
+> poly.counts(points, polygons)
+
+```{r}
+FF.mic <- FastFood[FastFood$STORE == 'MIC',]
+Taipei <- Popn.TWN[Popn.TWN$COUNTY == '臺北市',]
+data <- Taipei@data
+
+data$count <- poly.counts(FF.mic, Taipei)
+data[,c(1, 2, 15)]
+```
+

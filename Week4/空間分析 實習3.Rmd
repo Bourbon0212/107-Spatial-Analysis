@@ -1,0 +1,56 @@
+###空間分析　 實習3
+####地理二　B06208001　龔泓愷
+
+```{r results='hide', message = F, warning = F}
+library(GISTools)
+library(rgdal)
+library(dplyr)
+FastFood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
+Taipei_Vill <- readOGR(dsn = "./data", layer = "Taipei_Vill", encoding="utf8")
+```
+
+
+> Q1：以台北市為範圍，麥當勞 1 km為服務範圍內所涵蓋的麥當勞分店數，定義為該家麥當勞店家的連鎖密度，請問哪一家麥當勞的連鎖密度最高? 繪製在地圖上，並標示該店家名稱。
+
+```{r}
+#計算速食店連鎖密度
+MIC <- FastFood[FastFood$STORE == 'MIC',]
+distance <- gWithinDistance(MIC, MIC, byid = T, dist = 1000)
+FF.density <- apply(distance, 1, sum) #1 by row, 2 by col, 但應該沒差
+density.MAX <- which.max(FF.density)
+MIC.MAX <- MIC[density.MAX,]
+print(as.character(MIC.MAX@data$ALIAS))
+#畫圖
+plot(Taipei_Vill, col='grey', border="white", bg='white')
+points(MIC, col = 'blue', pch = 16, cex = 0.3) #一般的麥當勞
+points(MIC.MAX, col = 'red', pch = 16) #MAX的麥當勞
+map.scale(289702.6, 2764163, 4000, "4km", 4, 1) 
+north.arrow(289702.6, 2767730, 1000, col = 'grey')
+title('台北市麥當勞連鎖密度地圖')
+```
+
+***
+
+> Q2：以台北市為範圍，麥當勞 1 km為服務範圍。以台北市各里中心點是否在涵蓋該麥當勞的服務範圍，作為判斷該麥當勞是否能服務到該里的標準。請問哪個里可被麥當勞服務的家數最多?繪製在地圖上，並標示該里的位置及可及的麥當勞店家。
+
+```{r}
+#計算服務數量
+village.cent <- gCentroid(Taipei_Vill, byid = T) #找出各村里中心
+distance2 <- gWithinDistance(MIC, village.cent, byid = T, dist = 1000)
+FF.service <- apply(distance2, 1, sum) #依列加總，才能有456個
+service.MAX <- which.max(FF.service)
+Vill.MAX <- Taipei_Vill[service.MAX,]
+
+#計算該里可及麥當勞
+distance3 <- gWithinDistance(MIC, gCentroid(Vill.MAX, byid = T), byid = T, dist = 1000) #行列沒差，反正都能轉成vector
+service.MIC <- MIC[as.vector(distance3),] #轉成vector
+
+#畫圖
+plot(Taipei_Vill, col='grey', border="white", bg='white')
+plot(Vill.MAX, col = 'white', border = 'red', add = T)
+points(service.MIC, col = 'red', pch = 16, cex = 0.3)
+map.scale(289702.6, 2764163, 4000, "4km", 4, 1) 
+north.arrow(289702.6, 2767730, 1000, col = 'grey')
+title('台北市村里麥當勞服務地圖')
+```
+
