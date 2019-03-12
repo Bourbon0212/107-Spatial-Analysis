@@ -1,0 +1,59 @@
+###空間分析　 作業4
+####地理二　B06208001　龔泓愷
+
+> Q1：將實習所定義麥當勞的連鎖密度，建立 chainstore(d)的自訂函數，可繪製服務半徑(d) vs.麥當勞的關係圖表。
+
+```{r results='hide', message = F, warning = F}
+library(GISTools)
+library(rgdal)
+library(dplyr)
+library(ggplot2)
+FastFood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
+Taipei_Vill <- readOGR(dsn = "./data", layer = "Taipei_Vill", encoding="utf8")
+```
+
+```{r}
+#先挑出麥當勞速食店
+MIC <- FastFood[FastFood$STORE == 'MIC',]
+
+chainstore <- function(d){
+  dist <- seq(0, d, 0.25) #產生半徑清單
+  mean.density <- c()
+  for (i in 1:length(dist)) {
+    distance <- gWithinDistance(MIC, MIC, byid = T, dist = dist[i] * 10^3) #i是公里
+    FF.density <- apply(distance, 1, sum) #計算連鎖密度
+    mean.density[i] = mean(FF.density)
+  }
+  
+  df <- data.frame(dist = dist, mean = mean.density)
+  
+  ggplot(df, aes(x = dist, y = mean)) + 
+    geom_line() +
+    scale_x_continuous('連鎖密度(間)') + scale_y_continuous('服務半徑(km)') +
+    ggtitle('服務半徑(d)與麥當勞的關係圖') +
+    theme_minimal()
+}
+chainstore(2)
+```
+
+>Q2：比較 A區(文山+大安+中正)與 B區(信義+南港+松山) 的麥當勞連鎖密度，並利用統計檢定方法，評估 A區的平均每家麥當勞連鎖密度是否顯著高於 B區。(服務半徑(d) = 1.5 km)
+
+```{r}
+distance2 <-  gWithinDistance(MIC, MIC, byid = T, dist = 1500)
+#先算台北市連鎖密度，再把A、B選出來，才不會漏掉該區外但在1.5公里內的麥當勞
+FF.density2 <- apply(distance2, 1, sum) #自己這間麥當勞也算
+
+MIC_A <- FF.density2[MIC$TOWN %in% c('文山區','大安區','中正區')]
+MIC_B <- FF.density2[MIC$TOWN %in% c('信義區','南港區','松山區')]
+
+mean.A <- mean(MIC_A)
+mean.B <- mean(MIC_B)
+sd.A <- sd(MIC_A)
+sd.B <- sd(MIC_B)
+n.A <- 26
+n.B <- 19
+
+paste("A區有",n.A,"間麥當勞，其連鎖密度平均為",mean.A,"連鎖密度標準差為",sd.A)
+paste("B區有",n.B,"間麥當勞，其連鎖密度平均為",mean.B,"連鎖密度標準差為",sd.B)
+```
+
