@@ -57,3 +57,44 @@ paste("A區有",n.A,"間麥當勞，其連鎖密度平均為",mean.A,"連鎖密�
 paste("B區有",n.B,"間麥當勞，其連鎖密度平均為",mean.B,"連鎖密度標準差為",sd.B)
 ```
 
+###假說檢定
+####Step1
+H0：A區的平均每家麥當勞連鎖密度沒有顯著高於B區    
+H1：A區的平均每家麥當勞連鎖密度顯著高於B區(單尾檢定)    
+
+####Step2
+檢驗資料是否符合假說檢定要求    
+皆為小樣本，因此需要看資料分布型態，大致上呈現常態分佈且無離群值
+
+```{r}
+#condition check
+par(mfrow = c(1, 2))
+boxplot(MIC_A)
+boxplot(MIC_B)
+par(mfrow = c(1, 1))
+
+#t_value
+s.e. = sqrt(sd.A^2/n.A + sd.B^2/n.B);s.e.#unpooled
+df = min(n.A-1, n.B - 1);df#Df = Welch's Approximation or  (n1 - 1) & (n2 - 1)取小的
+t_value = ((mean.A - mean.B) - 0)/s.e.;t_value
+```
+
+####Step3
+採用Difference in Two Population Means的假說檢定
+```{r}
+p_value = pt(t_value, df = df, lower.tail = F);p_value#One-sided
+```
+
+####Step4
+設定顯著水準(alpha) = 0.05，由於p_value > 顯著水準，所以我們無法拒絕虛無假說(H0)    
+
+####Step5
+
+由於我們無法拒絕虛無假說(H0)，因此我們不能下「A區的平均每家麥當勞連鎖密度顯著高於B區」的結論    
+因為，我們不能拒絕「A區的平均每家麥當勞連鎖密度沒有顯著高於B區」的可能性    
+
+####檢查
+```{r}
+t.test(MIC_A, MIC_B ,mu = 0, alternative = "greater", paired =F, var.equal = F, conf.level = 0.95)
+```
+
