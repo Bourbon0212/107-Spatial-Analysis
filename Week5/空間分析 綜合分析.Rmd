@@ -1,3 +1,6 @@
+###空間分析　 綜合分析
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
 library(GISTools)
 library(rgdal)
 library(sp)
@@ -10,13 +13,15 @@ Taipei_Vill$CENSUS <- as.numeric(as.character(Taipei_Vill$CENSUS))
 Taipei_Vill$AREA <- poly.areas(Taipei_Vill)#計算村里面積
 flood50.attr <- data.frame(flood50)
 Taipei_Vill.attr <- data.frame(Taipei_Vill)
+```
 
-Overlay_Layer <- gIntersection(Taipei_Vill, flood50, byid = T)
-plot(Overlay_Layer, lwd = 1)
+```{r}
+Overlay_Layer <- gIntersection(flood50, Taipei_Vill, byid = T)
+#plot(Overlay_Layer, lwd = 1)
 
 name_list <- strsplit(names(Overlay_Layer), " ")
-Vill.id <- as.numeric(unlist(lapply(name_list, function(x) x[1]))) #村里代號
-flood.id <- as.numeric(unlist(lapply(name_list, function(x) x[2]))) #淹水代號
+Vill.id <- as.numeric(unlist(lapply(name_list, function(x) x[2]))) #村里代號
+flood.id <- as.numeric(unlist(lapply(name_list, function(x) x[1]))) #淹水代號
 
 df <- data.frame(Vill.id, flood.id)
 
@@ -32,3 +37,5 @@ Overlay_LayerNew$flood_pct <- as.numeric(Overlay_LayerNew$area2/Overlay_LayerNew
 Overlay_LayerNew$flood_count <- as.integer(Overlay_LayerNew$flood_pct * Overlay_LayerNew$cencus)#計算淹水影響人數(整數)
 
 xtabs(flood_count~grid_code, Overlay_LayerNew)#整理成報表
+
+```
