@@ -1,0 +1,103 @@
+###空間分析　 實習5
+####地理二　B06208001　龔泓愷
+
+```{r results='hide', message = F, warning = F}
+library(GISTools)
+library(rgdal)
+library(dplyr)
+library(ggplot2)
+library(aspace)
+point <- readOGR(dsn = "./data", layer = "point_event", encoding="utf8")
+POPN <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+```
+
+> Task 1: Exploring temporal trends in different time-scales
+
+```{r}
+point.attr <- point@data
+ggplot(point.attr, aes(x = WEEK)) +
+  geom_bar() +
+  ggtitle("每周登革熱案例通報數") + xlab("周次") + ylab("次數")
+
+#區分時期
+point.attr <- mutate(point.attr, period = case_when(
+  WEEK >= 1 & WEEK <= 7 ~ 1,
+  WEEK >= 8 & WEEK <= 15 ~ 2,
+  WEEK >= 16 & WEEK <= 23 ~ 3,
+  WEEK >= 24 & WEEK <= 31 ~ 4,
+  WEEK >= 32 & WEEK <= 39 ~ 5,
+  WEEK >= 40 & WEEK <= 47 ~ 6,
+  WEEK >= 48 & WEEK <= 55 ~ 7
+))
+
+ggplot(point.attr, aes(x = period)) +
+  geom_bar() +
+  ggtitle("每時期登革熱案例通報數") + xlab("時期") + ylab("次數")
+```
+
+> Task 2: Exploring spatial trends in different periods
+
+```{r results='hide'}
+Kao <- POPN[POPN$COUNTY == "高雄市",]#高雄圖資
+#把分出來的period貼進point
+for (i in (1:length(point))) {
+  point$period[i] = point.attr$period[i]
+}
+#把point做成空間點資料
+point <- SpatialPointsDataFrame(cbind(point.attr$X, point.attr$Y),point.attr, proj4string = CRS("+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +units=m +no_defs"))
+#取交集，找到高雄的登革熱點
+Kao.point <- gIntersection(Kao, point, byid = T)
+
+#點面資料交集找id的辦法
+Kao.point.attr <- data.frame(Kao.point)
+Kao.point_name=strsplit(row.names(Kao.point.attr), " ") 
+Kao.point$Kao_id=as.numeric(unlist(lapply(Kao.point_name,function(x) x[1]))) #Kao_id
+Kao.point$point_id=as.numeric(unlist(lapply(Kao.point_name,function(x) x[2]))) #point_id
+#把period跟座標貼進來
+Kao.point$period=point.attr$period[Kao.point$point_id]
+Kao.point$X=point.attr$X[Kao.point$point_id]
+Kao.point$Y=point.attr$Y[Kao.point$point_id]
+
+#挑出資料
+Kao.point1 <- Kao.point[Kao.point$period == 1,]
+Kao.point2 <- Kao.point[Kao.point$period == 2,]
+Kao.point3 <- Kao.point[Kao.point$period == 3,]
+Kao.point4 <- Kao.point[Kao.point$period == 4,]
+Kao.point5 <- Kao.point[Kao.point$period == 5,]
+Kao.point6 <- Kao.point[Kao.point$period == 6,]
+Kao.point7 <- Kao.point[Kao.point$period == 7,]
+
+#畫圖
+par(mar = c(0,0,1,0))
+plot(Kao, xlim=c(15635.9, 255905.1), ylim=c(2469556, 2592172), main="高雄登革熱擴散")
+
+#算SDD畫圖，要算完就畫
+point1.SDD <- calc_sdd(id=1, points=Kao.point1@data[,4:5])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "red", 
+         sdd.col = "red", sdd.lwd = 1, titletxt = "", plotpoints = F)
+
+point2.SDD <- calc_sdd(id=1, points=Kao.point2@data[,4:5])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "orange", 
+         sdd.col = "orange", sdd.lwd = 1, titletxt = "", plotpoints = F)
+
+point3.SDD <- calc_sdd(id=1, points=Kao.point3@data[,4:5])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "yellow", 
+         sdd.col = "yellow", sdd.lwd = 1, titletxt = "", plotpoints = F)
+
+point4.SDD <- calc_sdd(id=1, points=Kao.point4@data[,4:5])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "green", 
+         sdd.col = "green", sdd.lwd = 1, titletxt = "", plotpoints = F)
+
+point5.SDD <- calc_sdd(id=1, points=Kao.point5@data[,4:5])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "blue", 
+         sdd.col = "blue", sdd.lwd = 1, titletxt = "", plotpoints = F)
+
+point6.SDD <- calc_sdd(id=1, points=Kao.point6@data[,4:5])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "navy", 
+         sdd.col = "navy", sdd.lwd = 1, titletxt = "", plotpoints = F)
+
+point7.SDD <- calc_sdd(id=1, points=Kao.point7@data[,4:5])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "purple", 
+         sdd.col = "purple", sdd.lwd = 1, titletxt = "", plotpoints = F)
+```
+
