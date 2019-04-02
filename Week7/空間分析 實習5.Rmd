@@ -39,10 +39,6 @@ ggplot(point.attr, aes(x = period)) +
 
 ```{r results='hide'}
 Kao <- POPN[POPN$COUNTY == "高雄市",]#高雄圖資
-#把分出來的period貼進point
-for (i in (1:length(point))) {
-  point$period[i] = point.attr$period[i]
-}
 #把point做成空間點資料
 point <- SpatialPointsDataFrame(cbind(point.attr$X, point.attr$Y),point.attr, proj4string = CRS("+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +units=m +no_defs"))
 #取交集，找到高雄的登革熱點
@@ -58,46 +54,18 @@ Kao.point$period=point.attr$period[Kao.point$point_id]
 Kao.point$X=point.attr$X[Kao.point$point_id]
 Kao.point$Y=point.attr$Y[Kao.point$point_id]
 
-#挑出資料
-Kao.point1 <- Kao.point[Kao.point$period == 1,]
-Kao.point2 <- Kao.point[Kao.point$period == 2,]
-Kao.point3 <- Kao.point[Kao.point$period == 3,]
-Kao.point4 <- Kao.point[Kao.point$period == 4,]
-Kao.point5 <- Kao.point[Kao.point$period == 5,]
-Kao.point6 <- Kao.point[Kao.point$period == 6,]
-Kao.point7 <- Kao.point[Kao.point$period == 7,]
-
 #畫圖
 par(mar = c(0,0,1,0))
-plot(Kao, xlim=c(15635.9, 255905.1), ylim=c(2469556, 2592172), main="高雄登革熱擴散")
+plot(Kao,xlim=c(165899.0,192266.9),ylim=c(2491747, 2527843), main="高雄登革熱擴散")
+color<-c('red','orange','yellow','green','cyan','blue','purple')
 
-#算SDD畫圖，要算完就畫
-point1.SDD <- calc_sdd(id=1, points=Kao.point1@data[,4:5])
-plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "red", 
-         sdd.col = "red", sdd.lwd = 1, titletxt = "", plotpoints = F)
-
-point2.SDD <- calc_sdd(id=1, points=Kao.point2@data[,4:5])
-plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "orange", 
-         sdd.col = "orange", sdd.lwd = 1, titletxt = "", plotpoints = F)
-
-point3.SDD <- calc_sdd(id=1, points=Kao.point3@data[,4:5])
-plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "yellow", 
-         sdd.col = "yellow", sdd.lwd = 1, titletxt = "", plotpoints = F)
-
-point4.SDD <- calc_sdd(id=1, points=Kao.point4@data[,4:5])
-plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "green", 
-         sdd.col = "green", sdd.lwd = 1, titletxt = "", plotpoints = F)
-
-point5.SDD <- calc_sdd(id=1, points=Kao.point5@data[,4:5])
-plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "blue", 
-         sdd.col = "blue", sdd.lwd = 1, titletxt = "", plotpoints = F)
-
-point6.SDD <- calc_sdd(id=1, points=Kao.point6@data[,4:5])
-plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "navy", 
-         sdd.col = "navy", sdd.lwd = 1, titletxt = "", plotpoints = F)
-
-point7.SDD <- calc_sdd(id=1, points=Kao.point7@data[,4:5])
-plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "purple", 
-         sdd.col = "purple", sdd.lwd = 1, titletxt = "", plotpoints = F)
+for (i in 1:7) {
+  #先挑資料
+  Kao.point1 <- Kao.point[Kao.point$period == i,]
+  point.SDD <- calc_sdd(id=1, points=Kao.point1@data[,4:5])
+  #算完SDD要馬上畫，不然會被新算的洗掉
+  plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = color[i], 
+         sdd.col = color[i], sdd.lwd = 1, titletxt = "", plotpoints = F)
+}
 ```
 
