@@ -1,0 +1,40 @@
+###空間分析　 作業6
+####地理二　B06208001　龔泓愷
+
+```{r results='hide', message = F, warning = F}
+library(GISTools)
+library(rgdal)
+library(dplyr)
+library(ggplot2)
+library(aspace)
+VILLAGE <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8") #村里資料
+COUNTY <- gUnaryUnion(VILLAGE, VILLAGE$COUNTY_ID) #縣市資料
+```
+
+```{r results='hide'}
+CENTROIDS <- gCentroid(COUNTY, byid = T) #計算縣市地理中心點
+VILLAGE$CENCUS <- VILLAGE$A0A14_CNT + VILLAGE$A15A64_CNT + VILLAGE$A65UP_CNT #計算村里人口數
+CENTROIDS.v <- gCentroid(VILLAGE, byid = T) #計算村里中心點
+
+CENTROIDS.v$CENCUS <- VILLAGE$CENCUS
+CENTROIDS.v$COUNTY_ID <- VILLAGE$COUNTY_ID
+
+COUNTY_ID <- levels(factor(VILLAGE$COUNTY_ID)) #取得所有縣市的ID
+
+#畫圖
+par(mar = c(0,0,1,0), bg = "#F0F8FF")
+plot(VILLAGE, xlim=c(97131.72,327759.52), ylim = c(2409189,2818715), col = "grey", border = "white", lwd = 0.2, main="台灣各縣市的幾何與人口加權中心點") #以村里為底圖
+plot(COUNTY, add = T, border = "white", lwd = 2) #疊加縣市界線
+points(CENTROIDS, col = "black", pch = 16, cex = 0.6) #幾何中心點
+
+#計算人口加權中心
+for (i in (1:length(COUNTY_ID))) {
+  select <- CENTROIDS.v[CENTROIDS.v$COUNTY_ID == COUNTY_ID[i],]
+  select <- data.frame(select) #轉成data.frame，後面比較方便
+  mean.center <- mean_centre(points = select[,3:4], weighted = T, weights = select$CENCUS)
+  points(mean.center$CENTRE.x, mean.center$CENTRE.y, col="red", cex=1, pch=20)
+}
+
+legend("bottomleft", legend = c('幾何中心','人口加權中心'), pch = c(20,16),col=c("black","red"), cex = 0.7)
+```
+
