@@ -1,0 +1,37 @@
+###空間分析　 統計隨堂考
+####地理二　B06208001　龔泓愷
+
+> 1. 是非題   
+
+(1) (X) population mean使用t分配，唯有當df無限大時，結果才會與z分配相同。   
+(2) (O)   
+(3) (O)   
+
+> 2. 問答題   
+
+(1) Randomization是假設事件隨機發生；Normalization是假設事件套用一個常態分佈的模型，再散佈到地圖    
+(2) 薪資收入，在不同地區是否有顯著的差異
+
+> 3. 實作題 
+
+此題為二項分布，被竊機率為0.0001，沒有被竊機率為0.9999   
+(1) P(X> 120) = 1 - P(X <= 120)
+```{r}
+n = 1000000
+p = 0.0001
+pbinom(120, size = n, prob = p, lower.tail = F)
+```
+
+超出巡邏佈署警力的機率為0.02266377    
+
+(2)
+```{r warning=F}
+library(ggplot2)
+Population = c(1:1000000)
+Density = dbinom(Population, size = 1000000, prob = 0.0001)
+Data <- data.frame(Population, Density)
+ggplot(Data, aes(x = Population, y = Density)) +
+  geom_col() + scale_x_continuous(limits = c(50, 150)) +
+  ggtitle('每天遭竊人數分布圖')
+```
+

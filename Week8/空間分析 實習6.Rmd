@@ -1,0 +1,74 @@
+###空間分析　 實習6
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
+library(ggplot2)
+library(rgdal)
+library(GISTools)
+library(sp)
+Schools <- readOGR(dsn = "./data", layer = "Schools", encoding="utf8")
+```
+
+> 1. Binomial vs. Poisson Distributions
+
+```{r warning=F}
+#繪製機率分布圖
+Event = c(1:500)
+Density = dbinom(Event, size = 500, prob = 0.002)
+Data <- data.frame(Event, Density)
+ggplot(Data, aes(x = Event, y = Density)) +
+  geom_col() + scale_x_continuous(limits = c(0,10)) +
+  ggtitle('遭竊人數分布圖')
+
+#模擬1000次
+sim.event <- vector()
+for(i in 1:1000){
+  count = 0
+  for (j in 1:500){ #模擬500市民
+    samp = sample(1:500, 1, replace = T)#機率0.002
+    if (samp == 1){
+      count = count + 1
+    } 
+  }
+  sim.event[i] = count
+}
+#繪製模擬次數圖
+data <- data.frame(sim.event)
+ggplot(data, aes(x = sim.event)) +
+  geom_bar() + ggtitle("遭竊人數")
+#模擬結果
+mean(sim.event);sd(sim.event)
+#理論值
+500*0.002;sqrt(500*0.002*(1-0.002))
+
+#binom x=2的機率
+dbinom(2, size = 500, prob = 0.002)
+#poisson x=2的機率
+dpois(2,1) #lambda = e(x) = var(x)
+```
+
+> 2. 台南市學校的空間型態檢定
+
+```{r}
+grd = GridTopology(c(Schools@bbox[1,1]-1000, Schools@bbox[2,1]-1000), c(5000, 5000), c(12, 12))
+grd = as.SpatialPolygons.GridTopology(grd, proj4string = Schools@proj4string) 
+counts = poly.counts(Schools, grd)
+mean <- mean(counts); var = var(counts)
+VMR <- var/mean
+```
+
+####假說檢定    
+1. H0：VMR = 1，呈現RANDOM分布；H1：VMR != 1，分布不為RANDOM
+2. 計算Test-Statistics    
+```{r}
+s.e. = sqrt(2/143) #df = 格子數-1
+t_value = (VMR - 1)/s.e.
+```
+3. 計算P-Value
+```{r}
+p_value = pt(t_value, df = 143, lower.tail = F)*2
+p_value
+```
+
+4. 因為P-value遠小於顯著水準(0.05)，因此我們能推翻虛無假說H0    
+
+5. 統計上顯著，因此能下其分布不為RANDOM分布
