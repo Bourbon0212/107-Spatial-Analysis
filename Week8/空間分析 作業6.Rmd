@@ -1,0 +1,111 @@
+###空間分析　 作業6
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
+library(ggplot2)
+library(rgdal)
+library(GISTools)
+library(sp)
+library(aspace)
+library(dplyr)
+Temp <- readOGR(dsn = "./data", layer = "Tempcycle_twd97", encoding="utf8") #TWD97
+TWN <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8") #TWD97
+```
+
+>Q1-1：決定其中一間媽祖寺廟，如何使所有信眾的直線距離總和最小化？
+
+```{r}
+# CENTRAL FEATURE
+Temp.Ma <- filter(Temp@data, 主祭神祇 == "媽祖")
+Temp.Ma.CF <- CF(id = 1, points = Temp.Ma[,8:9])
+droplevels(filter(Temp.Ma, X_n == Temp.Ma.CF[,2])[,5])
+# 製作CF點資料
+Temp.Ma.CF <- SpatialPoints(cbind(Temp.Ma.CF[,2], Temp.Ma.CF[,3]), proj4string = TWN@proj4string) 
+# 畫圖
+par(mar = c(0,0,0,0))
+plot(TWN, xlim=c(148466,368986), ylim=c(2415399,2806277))
+points(Temp.Ma.CF, col = "red", pch = 20, cex = 2)
+```
+
+>Q1-2：另外搭設繞境中心，中心應設在何處？
+
+```{r}
+Temp.Ma.Med <- median_centre(points = Temp.Ma[,8:9])
+# 製作點資料
+Temp.Ma.Med <- SpatialPoints(cbind(Temp.Ma.Med[,2], Temp.Ma.Med[,3]), proj4string = TWN@proj4string) 
+# 和台灣取交集
+vill.index <- gIntersection(TWN,Temp.Ma.Med, byid = T)
+vill.index <- as.numeric(unlist(lapply(strsplit(row.names(vill.index), " "), function(x) x[1]))) #VILL ID
+droplevels(TWN@data[vill.index+1,2])
+# 畫圖
+vill.Med <- TWN[vill.index+1,]
+par(mar = c(0,0,0,0))
+plot(TWN, xlim=c(148466,368986), ylim=c(2415399,2806277))
+plot(vill.Med, col = 'red', border = 'grey', add = T)
+```
+
+>Q2-1：比較對於信仰「媽祖」與「觀音菩薩」信眾的空間分佈差異。
+
+```{r results='hide'}
+# 挑出要的資料
+Temp.S <- Temp[Temp$COUNTYNAME %in% c("嘉義縣", "嘉義市", "高雄市", "高雄縣", "台南市","台南縣", "屏東縣", "屏東市"),]
+TWN.S <- TWN[TWN$COUNTY %in% c("嘉義縣", "嘉義市", "高雄市", "臺南市", "屏東縣", "屏東市"),]
+
+Temp.S.M <- subset(Temp.S, 主祭神祇 == "媽祖") #挑出南部媽祖
+
+#畫圖
+par(mar = c(0,0,1,0))
+plot(TWN.S, xlim=c(127367,267976), ylim=c(2416990,2620214), border = "grey", main = "媽祖信眾空間分布")
+points(Temp.S.M, pch = 20, cex = 0.3)#所有廟的點
+
+#幾何中心
+M.mea <- mean_centre(points = Temp.S.M@data[,8:9])
+points(M.mea$CENTRE.x, M.mea$CENTRE.y, col="red", cex=1.4, pch=20)
+
+#標準圓
+M.sdd <- calc_sdd(points = Temp.S.M@data[,8:9])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "#008080", 
+         sdd.col = "#008080", sdd.lwd = 2, titletxt = "", plotpoints = F)
+
+#標準橢圓
+M.sde <- calc_sde(points = Temp.S.M@data[,8:9])
+plot_sde(plotnew = FALSE, plotcentre = T, centre.col = "#483D8B", 
+         sde.col = "#483D8B", sde.lwd = 2, titletxt = "", plotpoints = F)
+
+legend("bottomleft", legend = c('寺廟','幾何中心','標準圓', '標準橢圓'), pch = c(20,16,16,16), col = c("black","red","#008080","#483D8B"), cex=0.7)
+```
+
+```{r results='hide'}
+Temp.S.K <- subset(Temp.S, 主祭神祇 == "觀音菩薩") #挑出南部媽祖
+
+#畫圖
+par(mar = c(0,0,1,0))
+plot(TWN.S, xlim=c(127367,267976), ylim=c(2416990,2620214), border = "grey", main = "觀音菩薩信眾空間分布")
+points(Temp.S.K, pch = 20, cex = 0.3)#所有廟的點
+
+#幾何中心
+K.mea <- mean_centre(points = Temp.S.K@data[,8:9])
+points(K.mea$CENTRE.x, K.mea$CENTRE.y, col="red", cex=1.4, pch=20)
+
+#標準圓
+K.sdd <- calc_sdd(points = Temp.S.K@data[,8:9])
+plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "#008080", 
+         sdd.col = "#008080", sdd.lwd = 2, titletxt = "", plotpoints = F)
+
+#標準橢圓
+K.sde <- calc_sde(points = Temp.S.K@data[,8:9])
+plot_sde(plotnew = FALSE, plotcentre = T, centre.col = "#483D8B", 
+         sde.col = "#483D8B", sde.lwd = 2, titletxt = "", plotpoints = F)
+
+legend("bottomleft", legend = c('寺廟','幾何中心','標準圓', '標準橢圓'), pch = c(20,16,16,16), col = c("black","red","#008080","#483D8B"), cex=0.7)
+```
+
+
+>Q2-2：以20 km x 20 km的網格，比較信仰「媽祖」與「觀音菩薩」的寺廟的空間群聚特性，並討論之。
+
+1. 媽祖
+```{r}
+
+```
+
+
+>Q2-3：比較20 km x 20 km vs.50 km x 50 km的網格，計算信仰「媽祖」寺廟的空間群聚特性的差異，並討論網格尺度對於檢定空間群聚之影響。
