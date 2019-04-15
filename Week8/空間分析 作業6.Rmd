@@ -52,21 +52,21 @@ TWN.S <- TWN[TWN$COUNTY %in% c("嘉義縣", "嘉義市", "高雄市", "臺南市
 
 Temp.S.M <- subset(Temp.S, 主祭神祇 == "媽祖") #挑出南部媽祖
 
-#畫圖
+# 畫圖
 par(mar = c(0,0,1,0))
 plot(TWN.S, xlim=c(127367,267976), ylim=c(2416990,2620214), border = "grey", main = "媽祖信眾空間分布")
 points(Temp.S.M, pch = 20, cex = 0.3)#所有廟的點
 
-#幾何中心
+# 幾何中心
 M.mea <- mean_centre(points = Temp.S.M@data[,8:9])
 points(M.mea$CENTRE.x, M.mea$CENTRE.y, col="red", cex=1.4, pch=20)
 
-#標準圓
+# 標準圓
 M.sdd <- calc_sdd(points = Temp.S.M@data[,8:9])
 plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "#008080", 
          sdd.col = "#008080", sdd.lwd = 2, titletxt = "", plotpoints = F)
 
-#標準橢圓
+# 標準橢圓
 M.sde <- calc_sde(points = Temp.S.M@data[,8:9])
 plot_sde(plotnew = FALSE, plotcentre = T, centre.col = "#483D8B", 
          sde.col = "#483D8B", sde.lwd = 2, titletxt = "", plotpoints = F)
@@ -77,21 +77,21 @@ legend("bottomleft", legend = c('寺廟','幾何中心','標準圓', '標準橢�
 ```{r results='hide'}
 Temp.S.K <- subset(Temp.S, 主祭神祇 == "觀音菩薩") #挑出南部媽祖
 
-#畫圖
+# 畫圖
 par(mar = c(0,0,1,0))
 plot(TWN.S, xlim=c(127367,267976), ylim=c(2416990,2620214), border = "grey", main = "觀音菩薩信眾空間分布")
 points(Temp.S.K, pch = 20, cex = 0.3)#所有廟的點
 
-#幾何中心
+# 幾何中心
 K.mea <- mean_centre(points = Temp.S.K@data[,8:9])
 points(K.mea$CENTRE.x, K.mea$CENTRE.y, col="red", cex=1.4, pch=20)
 
-#標準圓
+# 標準圓
 K.sdd <- calc_sdd(points = Temp.S.K@data[,8:9])
 plot_sdd(plotnew = FALSE, plotcentre = T, centre.col = "#008080", 
          sdd.col = "#008080", sdd.lwd = 2, titletxt = "", plotpoints = F)
 
-#標準橢圓
+# 標準橢圓
 K.sde <- calc_sde(points = Temp.S.K@data[,8:9])
 plot_sde(plotnew = FALSE, plotcentre = T, centre.col = "#483D8B", 
          sde.col = "#483D8B", sde.lwd = 2, titletxt = "", plotpoints = F)
@@ -102,10 +102,138 @@ legend("bottomleft", legend = c('寺廟','幾何中心','標準圓', '標準橢�
 
 >Q2-2：以20 km x 20 km的網格，比較信仰「媽祖」與「觀音菩薩」的寺廟的空間群聚特性，並討論之。
 
-1. 媽祖
 ```{r}
+# 製作Grid
+grd <- GridTopology(cellcentre.offset=c(153113.6,2428667),
+                    cellsize=c(20000,20000), cells.dim = c(6,10)) 
+grd <- SpatialPolygonsDataFrame(as.SpatialPolygons.GridTopology(grd, proj4string = TWN@proj4string), data = data.frame(c(1:60)), match.ID = FALSE) 
 
+# 畫出來檢查看看
+par(mar = c(0,0,0,0))
+plot(TWN.S, xlim=c(127367,267976), ylim=c(2416990,2620214), border = "grey")
+plot(grd, add = T)
+
+# 算VMR
+counts.M = poly.counts(Temp.S.M, grd)
+mean.M <- mean(counts.M); var.M <- var(counts.M)
+VMR.M <- var.M/mean.M; VMR.M
+
+counts.K = poly.counts(Temp.S.K, grd)
+mean.K <- mean(counts.K); var.K <- var(counts.K)
+VMR.K <- var.K/mean.K; VMR.K
 ```
 
+####媽祖Quadrat Analysis
+
+*Step1*   
+H0：VMR = 1，空間群聚特性為隨機   
+H1：VMR > 1   
+alpha = 0.05    
+```{r echo=F}
+alpha = 0.05
+```
+
+*Step2*
+```{r}
+s.e. = sqrt(2/59) #s.e.公式：sqrt(2/(k-1))，k格子數
+t_value = (VMR.M - 1)/s.e. #VMR的null值 = 1
+t_value
+```
+
+*Step3*
+```{r}
+p_value = pt(t_value, df = 59, lower.tail = F) #DF = 格子數 - 1
+p_value
+```
+
+*Step4*
+```{r}
+p_value < alpha
+```
+由於P-value小於顯著水準(0.05)，拒絕虛無假設       
+
+*Step5*   
+檢定結果為統計上顯著，因此媽祖的空間群聚特性應為群聚    
+
+####觀音菩薩Quadrat Analysis
+
+*Step1*   
+H0：VMR = 1，空間群聚特性為隨機   
+H1：VMR > 1   
+alpha = 0.05    
+
+*Step2*
+```{r}
+s.e. = sqrt(2/59) #s.e.公式：sqrt(2/(k-1))，k格子數
+t_value = (VMR.K - 1)/s.e. #VMR的null值 = 1
+t_value
+```
+
+*Step3*
+```{r}
+p_value = pt(t_value, df = 59, lower.tail = F) #DF = 格子數 - 1
+p_value
+```
+
+*Step4*
+```{r}
+p_value < alpha
+```
+由於P-value小於顯著水準(0.05)，拒絕虛無假設       
+
+*Step5*   
+檢定結果為統計上顯著，因此觀音菩薩的空間群聚特性應為群聚    
+
+在顯著水準為0.05下，媽祖與觀音菩薩皆屬於群聚，若細看兩者的VMR值，則可發現媽祖的VMR值更大，比觀音菩薩更接近群聚。
 
 >Q2-3：比較20 km x 20 km vs.50 km x 50 km的網格，計算信仰「媽祖」寺廟的空間群聚特性的差異，並討論網格尺度對於檢定空間群聚之影響。
+
+```{r}
+# 製作Grid
+grd <- GridTopology(cellcentre.offset=c(174613.6,2444667),
+                    cellsize=c(50000,50000), cells.dim = c(2,4)) 
+grd <- SpatialPolygonsDataFrame(as.SpatialPolygons.GridTopology(grd, proj4string = TWN@proj4string), data = data.frame(c(1:8)), match.ID = FALSE) 
+
+# 畫出來檢查看看
+par(mar = c(0,0,0,0))
+plot(TWN.S, xlim=c(127367,267976), ylim=c(2416990,2620214), border = "grey")
+points(Temp.S.M, pch = 20, cex = 0.3)#所有廟的點
+plot(grd, add = T)
+
+# 算VMR
+counts.M = poly.counts(Temp.S.M, grd)
+mean.M <- mean(counts.M); var.M <- var(counts.M)
+VMR.M <- var.M/mean.M; VMR.M
+```
+
+*Step1*   
+H0：VMR = 1，空間群聚特性為隨機   
+H1：VMR > 1   
+alpha = 0.05    
+```{r echo=F}
+alpha = 0.05
+```
+
+*Step2*
+```{r}
+s.e. = sqrt(2/7) #s.e.公式：sqrt(2/(k-1))，k格子數
+t_value = (VMR.M - 1)/s.e. #VMR的null值 = 1
+t_value
+```
+
+*Step3*
+```{r}
+p_value = pt(t_value, df = 7, lower.tail = F) #DF = 格子數 - 1
+p_value
+```
+
+*Step4*
+```{r}
+p_value < alpha
+```
+由於P-value小於顯著水準(0.05)，拒絕虛無假設       
+
+*Step5*   
+檢定結果為統計上顯著，因此媽祖的空間群聚特性應為群聚    
+
+網格尺度較大(50km X 50km)，與小尺度網格(20km X 20km)相較之下，數值為0的網格較少，也拉大了網格數值之間的差距，因此在大網格尺度下求得的VMR值，較小網格尺度的來得大，更加凸顯空間群聚的特性。
