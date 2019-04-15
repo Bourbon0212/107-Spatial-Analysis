@@ -1,0 +1,136 @@
+###空間分析　 實習7
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(spatstat)
+School <- readOGR(dsn =  "./data", layer = "Schools", encoding="utf8")
+```
+
+```{r}
+# "ppp" data format for spatstat
+bnd<-bbox(School) # get x, y limitation
+x.coor<-School$coords.x1
+y.coor<-School$coords.x2
+x.range<-bnd[1,]
+y.range<-bnd[2,]
+
+# ppp(x.coordinates, y.coordinates, x.range, y.range)
+School.ppp<-ppp(x.coor,y.coor,x.range,y.range)
+plot(School.ppp)
+```
+
+> 1. Nearest Neighbor Disntance
+
+###Step1    
+H0：台南學校各點和其最近點距離的平均，與隨機分布各點和其最近點距離的平均相同(分布型態為隨機)   
+H1：台南學校各點和其最近點距離的平均，與隨機分布各點和其最近點距離的平均不同(分布型態不為隨機)      
+雙尾檢定，顯著水準：0.1   
+
+###Step2    
+```{r}
+# Nearest Neighborhood Distance
+nnd<-nndist(School.ppp, k=1)
+d1<-mean(nnd) # Tainan School
+
+# Random point 
+TN.Windows<-owin(xrange=x.range, yrange=y.range) # set the windows of random points
+random <- vector()
+for (i in 1:99) {
+  nn1<-rpoint(424, win=TN.Windows)
+  nnd1<-nndist(nn1, k=1)
+  random[i]<-mean(nnd1)
+}
+
+# Frequency plot
+hist(random, main = "Monte Carlo Significance Test", xlim = c(900, 1500))
+abline(v = d1, col = "red")
+```
+
+###Step3
+```{r}
+# Get no.5, no.95
+random <- sort(random)
+nnd.5 <- random[5]
+nnd.95 <- random[95]
+d1 < nnd.5|d1 > nnd.5
+```
+p_value < 0.1   
+
+###Step4
+在顯著水準為0.1的情況下，因為p_value < 0.1，拒絕虛無假說    
+
+###Step5
+在顯著水準為0.1的情況下，呈現統計上顯著，因此能下"台南學校的點分布型態不為隨機"的結論   
+
+
+> 2. K-order Nearest Neighbor Indices   
+
+###Step1    
+H0：台南學校各點和其前100近的點距離的平均，與隨機分布與其前100近的點距離的平均相同(分布型態為隨機)     
+H1：台南學校各點和其前100近的點距離的平均，與隨機分布與其前100近的點距離的平均不同(分布型態不為隨機)      
+雙尾檢定，顯著水準0.1
+
+###Step2
+```{r}
+# K-order Nearest Neighbor Indices
+ANN <- apply(nndist(School.ppp, k=1:100),2,FUN=mean)
+nni <- ANN #先讓他有一個值，待會直接cbind
+
+for (i in 1:99) {
+  nn1<-rpoint(424, win=TN.Windows)
+  nni1<-apply(nndist(nn1, k=1:100),2,FUN=mean)
+  nni<-cbind(nni, nni1)
+}
+
+nni.5 <- vector()
+nni.95 <- vector()
+for (i in 1:100) {
+  nni.5[i] <- sort(nni[i,])[5]
+  nni.95[i] <- sort(nni[i,])[95]
+}
+
+plot(ANN ~ eval(1:100), type="l", main="K-order NN" )
+lines(nni.5 ~ eval(1:100), type="l",col="red")
+lines(nni.95 ~ eval(1:100), type="l",col="red")
+```
+
+###Step3    
+設定顯著水準為0.1，上圖第一條紅線為第95百分位數，第二條紅線為第5百分位數，可以見到黑線遠小於第5百分位數，並落在拒絕區間(沒有被包住)。
+
+###Step4    
+在顯著水準為0.1的情況下，因為黑線落在拒絕區間，因此拒絕虛無假說   
+
+###Step5
+在顯著水準為0.1的情況下，呈現統計上顯著，因此能下"台南學校的點分布型態不為隨機"的結論   
+
+> 3. G Function
+
+###Step1    
+H0：台南學校的點分布型態為隨機    
+H1：台南學校的點分布型態不為隨機    
+雙尾檢定，顯著水準0.1
+
+###Step2    
+```{r}
+# G(d)function
+G.nnd <- ecdf(nnd)
+plot(G.nnd, main="G function",xlim=c(0,5000),col="red")
+
+for (i in 1:99) {
+  nn1<-rpoint(424, win=TN.Windows)
+  nnd<-nndist(nn1, k=1)
+  G.ran<-ecdf(nnd)
+  lines(G.ran, main="G function",xlim=c(0,5000))
+}
+
+lines(G.nnd, main="G function",xlim=c(0,5000),col="red") #被蓋掉了
+```
+
+###Step3
+設定顯著水準為0.1，可以看到紅線起初成長的速度相當快，落在拒絕區間(沒有被包住)
+
+###Step4
+在顯著水準為0.1的情況下，因為紅線落在拒絕區間，因此拒絕虛無假說   
+
+###Step5    
+在顯著水準為0.1的情況下，呈現統計上顯著，因此能下"台南學校的點分布型態不為隨機"的結論
