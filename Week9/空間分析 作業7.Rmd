@@ -1,0 +1,164 @@
+###空間分析　 作業7
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(spatstat)
+Temp <- readOGR(dsn =  "./data", layer = "Tempcycle_twd97", encoding="utf8")
+```
+
+####比較「台北」與「高雄」，信仰「觀音菩薩」的村落型祭祀圈的寺廟空間群聚特性。    
+```{r warning=FALSE}
+# Data selection
+Temp.TPE <- subset(Temp, COUNTYNAME %in% c("台北市", "台北縣"))
+Temp.TPE <- subset(Temp.TPE, 主祭神祇 == "觀音菩薩")
+Temp.KAO <- subset(Temp, COUNTYNAME%in% c("高雄市", "高雄縣"))
+Temp.KAO <- subset(Temp.KAO, 主祭神祇 == "觀音菩薩")
+
+# ppp format for Taipei
+bnd.TPE <- bbox(Temp.TPE)
+x.TPE <- Temp.TPE$coords.x1
+y.TPE <- Temp.TPE$coords.x2
+x.range.TPE <- bnd.TPE[1,]
+y.range.TPE <- bnd.TPE[2,]
+
+TPE.ppp <- ppp(x.TPE, y.TPE, x.range.TPE, y.range.TPE)
+
+#ppp format for Kaoshiong
+bnd.KAO <- bbox(Temp.KAO)
+x.KAO <- Temp.KAO$coords.x1
+y.KAO <- Temp.KAO$coords.x2
+x.range.KAO <- bnd.KAO[1,]
+y.range.KAO <- bnd.KAO[2,]
+
+KAO.ppp <- ppp(x.KAO, y.KAO, x.range.KAO, y.range.KAO)
+
+# plot ppp
+par(mfrow = c(1, 2))
+plot(TPE.ppp)
+plot(KAO.ppp)
+par(mfrow = c(1, 1))
+```
+
+> 1. Nearest Neighbor Analysis    
+
+```{r}
+# Nearest Neighborhood Distance
+nnd.TPE <- nndist(TPE.ppp, k=1)
+nnd.m.TPE <- mean(nnd.TPE)
+nnd.KAO <- nndist(KAO.ppp, k=1)
+nnd.m.KAO <- mean(nnd.KAO)
+
+# Random point TPE(20)
+nnd.r.TPE <- vector()
+for (i in 1:99) {
+  nn1 <- rpoint(20, win = owin(xrange=x.range.TPE, yrange=y.range.TPE))
+  nnd.r <- nndist(nn1, k=1)
+  nnd.r.TPE[i]<-mean(nnd.r)
+}
+
+# Random point KAO(18)
+nnd.r.KAO <- vector()
+for (i in 1:99) {
+  nn1 <- rpoint(18, win = owin(xrange=x.range.KAO, yrange=y.range.KAO))
+  nnd.r <- nndist(nn1, k=1)
+  nnd.r.KAO[i]<-mean(nnd.r)
+}
+
+# Frequency plot
+par(mfrow = c(1, 2))
+hist(nnd.r.TPE, main = "NND of TPE")
+abline(v = nnd.m.TPE, col = "red")
+hist(nnd.r.KAO, main = "NND of KAO")
+abline(v = nnd.m.KAO, col = "red")
+par(mfrow = c(1, 1))
+
+# Conclusion
+nnd.r.TPE <- sort(nnd.r.TPE)
+nnd.m.TPE < nnd.r.TPE[5] | nnd.m.TPE > nnd.r.TPE[95]
+nnd.r.KAO <- sort(nnd.r.KAO)
+nnd.m.KAO < nnd.r.KAO[5] | nnd.m.KAO > nnd.r.KAO[95]
+```
+
+    顯著水準為0.1下，台北地區與高雄地區統計上皆不顯著，因此無法下"空間分布非隨機"的結論。
+    因為沒有足夠證據排除"空間分布為隨機"的可能性。
+
+> 2. K-order Nearest Neighbor Indices    
+
+```{r}
+# K-order Nearest Neighbor Indices
+nni.TPE <- apply(nndist(TPE.ppp, k=1:10), 2, FUN = mean)
+nni.KAO <- apply(nndist(KAO.ppp, k=1:10), 2, FUN = mean)
+
+# Random point TPE(20)
+nni.r.TPE <- nni.TPE
+for (i in 1:99) {
+  nn1 <- rpoint(20, win = owin(xrange=x.range.TPE, yrange=y.range.TPE))
+  nni <- apply(nndist(nn1, k=1:10), 2, FUN = mean)
+  nni.r.TPE <- cbind(nni.r.TPE, nni)
+}
+nni.5.TPE <- vector()
+nni.95.TPE <- vector()
+for (i in 1:10) {
+  nni.5.TPE[i] <- sort(nni.r.TPE[i,])[5]
+  nni.95.TPE[i] <- sort(nni.r.TPE[i,])[95]
+}
+
+# Random point KAO(18)
+nni.r.KAO <- nni.TPE
+for (i in 1:99) {
+  nn1 <- rpoint(18, win = owin(xrange=x.range.KAO, yrange=y.range.KAO))
+  nni <- apply(nndist(nn1, k=1:10), 2, FUN = mean)
+  nni.r.KAO <- cbind(nni.r.KAO, nni)
+}
+nni.5.KAO <- vector()
+nni.95.KAO <- vector()
+for (i in 1:10) {
+  nni.5.KAO[i] <- sort(nni.r.KAO[i,])[5]
+  nni.95.KAO[i] <- sort(nni.r.KAO[i,])[95]
+}
+
+# Plot
+par(mfrow = c(1, 2))
+plot(nni.TPE ~ eval(1:10), type="l", main="K-NNI of TPE" )
+lines(nni.5.TPE ~ eval(1:10), type="l",col="red")
+lines(nni.95.TPE ~ eval(1:10), type="l",col="red")
+
+plot(nni.KAO ~ eval(1:10), type="l", main="K-NNI of KAO" )
+lines(nni.5.KAO ~ eval(1:10), type="l",col="red")
+lines(nni.95.KAO ~ eval(1:10), type="l",col="red")
+par(mfrow = c(1, 1))
+```
+
+    在顯著水準為0.1下，台北地區前幾近的點中，落在接受區間內，無法拒絕"空間分布為隨機"，而隨著點越來越遠，將落在拒絕區間，因此能拒絕"空間分布為隨機"。同樣地，高雄地區與最近的點，落在接受區間內，無法拒絕"空間分布為隨機"，但是隨著點越來越遠，先落於拒絕區間，之後又回到接受區間。
+
+> 3. G(d) Functions
+
+```{r message=F}
+# G(d)function
+G.TPE <- ecdf(nnd.TPE)
+G.KAO <- ecdf(nnd.KAO)
+
+library(scales)
+# Random point TPE(20)
+par(mfrow = c(1, 2))
+plot(G.TPE, main = "G(d) of TPE", col="red")
+for (i in 1:99) {
+  nn1 <- rpoint(20, win = owin(xrange=x.range.TPE, yrange=y.range.TPE))
+  nnd.r <- nndist(nn1, k=1)
+  lines(ecdf(nnd.r), col=alpha("grey", 0.4))
+}
+lines(G.TPE, col="red") #replaced
+
+# Random point KAO(18)
+plot(G.KAO, main = "G(d) of KAO", col="red")
+for (i in 1:99) {
+  nn1 <- rpoint(18, win = owin(xrange=x.range.KAO, yrange=y.range.KAO))
+  nnd.r <- nndist(nn1, k=1)
+  lines(ecdf(nnd.r), col=alpha("grey", 0.4))
+}
+lines(G.KAO, col="red") #replaced
+par(mfrow = c(1, 1))
+```
+
+    在台北地區，能看到紅線先是陡然上升再趨緩，然而與隨機分布沒有拉出足夠差距。
+    同樣地，高雄地區也未能與隨機分布拉出足夠差距，但與台北地區比較，群聚現象較不明顯。
