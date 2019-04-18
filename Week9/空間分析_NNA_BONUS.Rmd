@@ -1,0 +1,149 @@
+###空間分析　NNA BONUS
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(spatstat)
+library(GISTools)
+School <- readOGR(dsn =  "./data", layer = "Schools", encoding="utf8")
+TWN <- readOGR(dsn =  "./data", layer = "Taiwan_county", encoding="utf8")
+TAN <- subset(TWN, COUNTY == "台南市")
+```
+
+```{r}
+# "ppp" data format for spatstat
+bnd<-bbox(School) # get x, y limitation
+x.coor<-School$coords.x1
+y.coor<-School$coords.x2
+x.range<-bnd[1,]
+y.range<-bnd[2,]
+
+# shapefile process
+TAN=gUnaryUnion(TAN)
+TAN=gBuffer(TAN, width = 500) 
+
+# ppp(x.coordinates, y.coordinates, windows)
+par(mfrow = c(1, 2))
+School.ppp1<-ppp(x.coor,y.coor,x.range,y.range)
+plot(School.ppp1)
+School.ppp2<-ppp(x.coor,y.coor, as.owin(TAN))
+plot(School.ppp2)
+par(mfrow = c(1, 1))
+```
+
+> 1. Nearest Neighbor Disntance
+
+```{r}
+# Nearest Neighborhood Distance
+nnd.SQR <- nndist(School.ppp1, k=1)
+nnd.m.SQR <- mean(nnd.SQR)
+nnd.SHP <- nndist(School.ppp2, k=1)
+nnd.m.SHP <- mean(nnd.SHP)
+
+# Random point SQUARE
+nnd.r.SQR <- vector()
+for (i in 1:99) {
+  nn1 <- rpoint(424, win = owin(xrange=x.range, yrange=y.range))
+  nnd.r <- nndist(nn1, k=1)
+  nnd.r.SQR[i]<-mean(nnd.r)
+}
+
+# Random point SHAPE
+nnd.r.SHP <- vector()
+for (i in 1:99) {
+  nn1 <- rpoint(424, win = as.owin(TAN))
+  nnd.r <- nndist(nn1, k=1)
+  nnd.r.SHP[i]<-mean(nnd.r)
+}
+
+# Frequency plot
+par(mfrow = c(1, 2))
+hist(nnd.r.SQR, xlim=c(900,1500), main = "NND of SQR")
+abline(v = nnd.m.SQR, col = "red")
+hist(nnd.r.SHP, xlim=c(900,1500), main = "NND of SHP")
+abline(v = nnd.m.SHP, col = "red")
+par(mfrow = c(1, 1))
+
+# Conclusion
+nnd.r.SQR <- sort(nnd.r.SQR)
+nnd.m.SQR < nnd.r.SQR[5] | nnd.m.SQR > nnd.r.SQR[95]
+nnd.r.SHP <- sort(nnd.r.SHP)
+nnd.m.SHP < nnd.r.SHP[5] | nnd.m.SHP > nnd.r.SHP[95]
+```
+
+> 2. K-order Nearest Neighbor Indices
+
+```{r}
+# K-order Nearest Neighbor Indices
+nni.SQR <- apply(nndist(School.ppp1, k=1:100), 2, FUN = mean)
+nni.SHP <- apply(nndist(School.ppp2, k=1:100), 2, FUN = mean)
+
+# Random point SQR
+nni.r.SQR <- nni.SQR
+for (i in 1:99) {
+  nn1 <- rpoint(424, win = owin(xrange=x.range, yrange=y.range))
+  nni <- apply(nndist(nn1, k=1:100), 2, FUN = mean)
+  nni.r.SQR <- cbind(nni.r.SQR, nni)
+}
+nni.5.SQR <- vector()
+nni.95.SQR <- vector()
+for (i in 1:100) {
+  nni.5.SQR[i] <- sort(nni.r.SQR[i,])[5]
+  nni.95.SQR[i] <- sort(nni.r.SQR[i,])[95]
+}
+
+# Random point SHP
+nni.r.SHP <- nni.SHP
+for (i in 1:99) {
+  nn1 <- rpoint(424, win = as.owin(TAN))
+  nni <- apply(nndist(nn1, k=1:100), 2, FUN = mean)
+  nni.r.SHP <- cbind(nni.r.SHP, nni)
+}
+nni.5.SHP <- vector()
+nni.95.SHP <- vector()
+for (i in 1:100) {
+  nni.5.SHP[i] <- sort(nni.r.SHP[i,])[5]
+  nni.95.SHP[i] <- sort(nni.r.SHP[i,])[95]
+}
+
+# Plot
+par(mfrow = c(1, 2))
+plot(nni.SQR ~ eval(1:100), type="l", main="K-NNI of SQR" )
+lines(nni.5.SQR ~ eval(1:100), type="l",col="red")
+lines(nni.95.SQR ~ eval(1:100), type="l",col="red")
+
+plot(nni.SHP ~ eval(1:100), type="l", main="K-NNI of SHP" )
+lines(nni.5.SHP ~ eval(1:100), type="l",col="red")
+lines(nni.95.SHP ~ eval(1:100), type="l",col="red")
+par(mfrow = c(1, 1))
+```
+
+> 3. G Function
+
+```{r message=F}
+# G(d)function
+G.SQR <- ecdf(nnd.SQR)
+G.SHP <- ecdf(nnd.SHP)
+
+library(scales)
+# Random point SQR
+par(mfrow = c(1, 2))
+plot(G.SQR, main = "G(d) of SQR", col="red")
+for (i in 1:99) {
+  nn1 <- rpoint(424, win = owin(xrange=x.range, yrange=y.range))
+  nnd.r <- nndist(nn1, k=1)
+  lines(ecdf(nnd.r), col=alpha("grey", 0.4))
+}
+lines(G.SQR, col="red") #replaced
+
+# Random point SHP
+plot(G.SHP, main = "G(d) of SHP", col="red")
+for (i in 1:99) {
+  nn1 <- rpoint(424, win = as.owin(TAN))
+  nnd.r <- nndist(nn1, k=1)
+  lines(ecdf(nnd.r), col=alpha("grey", 0.4))
+}
+lines(G.SHP, col="red") #replaced
+par(mfrow = c(1, 1))
+```
+
+    行政區邊界較矩形小，而矩形因面積較大，涵蓋範圍超出行政區，因此更容易判斷為群聚。
