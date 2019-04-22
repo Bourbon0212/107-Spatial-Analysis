@@ -1,0 +1,50 @@
+###空間分析　 實習8
+####地理二　B06208001　龔泓愷
+
+###Procedures of F(d) Function
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(spatstat)
+library(GISTools)
+School <- readOGR(dsn =  "./data", layer = "Schools", encoding="utf8")
+```
+
+```{r}
+# "ppp" data format for spatstat
+bnd <- bbox(School) # get x, y limitation
+x.coor <- School$coords.x1
+y.coor <- School$coords.x2
+x.range <- bnd[1,]
+y.range <- bnd[2,]
+
+School.ppp <- ppp(x.coor, y.coor, x.range, y.range)
+
+# Random point
+random.pts <- rpoint(424, win = owin(x.range, y.range)) #F用的隨機點幾個都可以
+
+# calculate nearest distance
+nnd = nncross(random.pts, School.ppp) #找隨機點與學校點最近
+
+# calculate F(d)
+Fun.f <- ecdf(nnd$dist)
+
+# plot
+plot(Fun.f, main = "F(d) Function",xlim = c(0, 5000), col = "red")
+
+# Monte Carlo Significance Test
+for (i in 1:99) {
+  random2.pts <- rpoint(424, win = owin(x.range, y.range)) #點數要跟學校點數一樣多
+  nnd.r <- nncross(random.pts, random2.pts)
+  lines(ecdf(nnd.r$dist),col = "#00000044") #被蓋掉了
+}
+lines(Fun.f, col = "red") #被蓋掉了
+```
+
+```{r results='hide'}
+CI = envelope(School.ppp, Fest, nsim=99, nrank=1)
+plot(CI)
+```
+
+    討論與比較：自訂函式與內建函式結果相符。
+    H0：隨機分布，H1：非隨機分布，雙尾檢定。
+    顯著水準假設為0.02，落在隨機分布以下，拒絕虛無假說，下其為非隨機分布的結論。
