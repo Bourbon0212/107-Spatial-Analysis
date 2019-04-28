@@ -1,0 +1,68 @@
+###空間分析　 作業8
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(GISTools)
+library(spatstat)
+
+School <- readOGR(dsn =  "./data", layer = "Schools", encoding="utf8")# TWD97
+TWN <- readOGR(dsn =  "./data", layer = "Taiwan_county", encoding="utf8")# TWD97
+# Shapefile Process
+TAN <- subset(TWN, COUNTY == "台南市")
+TAN <- gUnaryUnion(TAN)
+TAN <- gBuffer(TAN, width = 500) 
+```
+
+###Procedures of K(d) Function    
+**Step1**   
+
+    H0：學校點資料空間分布型態為隨機    
+    H1：學校點資料空間分布型態不為隨機    
+    顯著水準：0.1，雙尾檢定    
+    
+**Step2 & Step3**     
+
+    自訂K Function函式檢定(無邊緣修正)
+```{r}
+lambda <- length(School)/poly.areas(TAN) #點密度
+r <- 100 #K用的buffer起始值
+
+Radius <- vector();K_value <- vector();L_value <- vector() #用來裝不同半徑下的k_value、t_value
+
+while(r <= 15000) {
+  School.buff <- gBuffer(School, byid = T, width = r)
+  Counts.tmp <- unname(poly.counts(School, gBuffer(School, byid = T, width = r))) #同一個R下的所有poly.counts
+  
+  for(i in 1:length(Counts.tmp)) {
+    Counts.tmp[i] <- Counts.tmp[i] - 1 #計算點個數要排除自己
+  }
+  
+  Counts.mean <- sum(Counts.tmp)/length(School) #計算平均每個buffer內有幾個點
+  
+  Radius <- append(Radius, r)
+  K_value <- append(K_value, Counts.mean / lambda)
+  L_value <- append(L_value, sqrt(Counts.mean/lambda/pi) - r)
+  r <- r + 100
+}
+
+plot(L_value ~ Radius, type="l", main="K_Function" )
+```
+
+    內建K_Funtion函式
+    
+```{r}
+x.coor <- School$coords.x1
+y.coor <- School$coords.x2
+School.ppp <- ppp(x.coor,y.coor,as.owin(TAN))
+CI = envelope(School.ppp, Lest, nsim=19, nrank=1)
+plot(CI,.-r~r)
+```
+
+**Step4**   
+
+    顯著水準為0.1，觀測值落在信賴包絡以外，能拒絕虛無假說。
+    同時，能觀察到自訂函數缺乏邊緣校正，與內建函數結果有差異。
+    
+**Step5**   
+
+    顯著水準為0.1，樣本呈現統計上顯著，顯示台南市學校點資料之空間分布不屬於隨機分布。   
