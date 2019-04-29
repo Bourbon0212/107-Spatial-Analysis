@@ -1,0 +1,64 @@
+###空間分析　 實習9
+####地理二　B06208001　龔泓愷
+
+    Using "splancs" to calculate Kernel Density Esitmation(KDE)
+    
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(splancs)
+
+# Load in the data
+data1 <- read.csv("./data/point1.csv")
+data2 <- read.csv("./data/point2.csv")
+boundary <- read.csv("./data/tpe_sqr_bnd.csv")
+```
+
+```{r}
+# Using splancs::as.points()to make points data
+pts1 <- as.points(data1[,1], data1[,2])
+pts2 <- as.points(data2[,1], data2[,2])
+bnd <- as.points(boundary[,2], boundary[,3])
+
+# KDE calculation
+kde1 <- kernel2d(pts1, bnd, 1500, 50, 50, quiet = T) # kernel2d(pts, bnd, 搜尋半徑, 網格數量x, 網格數量y)
+kde2 <- kernel2d(pts2, bnd, 1500, 50, 50, quiet = T)
+
+# Dual KDE calculation
+kde.diff <- kde1
+kde.diff$z <- kde1$z - kde2$z # kde$z 是計算出來的KDE
+
+# KDE map
+polymap(bnd)
+image(kde.diff, add = T) 
+polymap(bnd, add = T) # Rebuild bnd
+```
+
+    Using "GISTools" to calculate Kernel Density Esitmation(KDE)
+
+```{r results='hide', message = F, warning = F}
+library(GISTools)
+library(raster)
+
+# Load in the data
+TWN <- readOGR(dsn = "./data", layer = "Taiwan_county", encoding="utf8")
+
+# Using GISTools to make shapefile
+PTS1 <- SpatialPoints(pts1, proj4string = TWN@proj4string)
+PTS2 <- SpatialPoints(pts2, proj4string = TWN@proj4string)
+BND <- subset(TWN, COUNTY == "台北市")
+
+# KDE Calculation
+KDE1 = kde.points(PTS1, 3000, 100, BND)
+KDE2 = kde.points(PTS2, 3000, 100, BND)
+
+# Dual KDE Calculation
+KDE1.R = raster(KDE1)
+KDE2.R = raster(KDE2)
+KDE.DIFF = KDE1.R - KDE2.R #raster可直接相減
+
+# KDE map
+plot(KDE.DIFF) #KDE圖
+masker = poly.outer(KDE.DIFF, BND) #建立遮罩
+add.masking(masker, col="white") #覆蓋遮罩
+plot(BND, add=T) #加邊框
+```
