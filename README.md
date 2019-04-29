@@ -14,4 +14,4 @@ Department：臺大地理二
 #### Week8：[Lab6](https://bourbon0212.github.io/107-Spatial-Analysis/Week8/空間分析_實習6.html)，[HW6](https://bourbon0212.github.io/107-Spatial-Analysis/Week8/空間分析_作業6.html)，[隨堂練習](https://bourbon0212.github.io/107-Spatial-Analysis/Week8/統計隨堂考.html)    
 #### Week9：[Lab7](https://bourbon0212.github.io/107-Spatial-Analysis/Week9/空間分析_實習7.html)，[HW7](https://bourbon0212.github.io/107-Spatial-Analysis/Week9/空間分析_作業7.html)，[BONUS](https://bourbon0212.github.io/107-Spatial-Analysis/Week9/空間分析_NNA_BONUS.html)         
 #### Week10：[Lab8](https://bourbon0212.github.io/107-Spatial-Analysis/Week10/空間分析_實習8.html)，[HW8](https://bourbon0212.github.io/107-Spatial-Analysis/Week10/空間分析_作業8.html)    
-#### Week10：[Lab9](https://bourbon0212.github.io/107-Spatial-Analysis/Week11/空間分析_實習9.html)   
+#### Week11：[Lab9](https://bourbon0212.github.io/107-Spatial-Analysis/Week11/空間分析_實習9.html)   
