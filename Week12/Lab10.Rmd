@@ -66,36 +66,28 @@ KFC <- subset(Fastfood, STORE == "KFC")
 ```
 
 ```{r}
-#Customized function to return K-order nearest
-fun2 <- function(x) {
-  ret = sort(x)[2]
-  return(ret)
-}
-fun3 <- function(x) {
-  ret = sort(x)[3]
-  return(ret)
-}
-fun4 <- function(x) {
-  ret = sort(x)[4]
-  return(ret)
-}
-
 #gDistance to get the distance, and apply the function above
 dist <- gDistance(MIC, KFC, byid = T)
-near1 <- apply(dist, 1, min)
-near2 <- apply(dist, 1, fun2)
-near3 <- apply(dist, 1, fun3)
-near4 <- apply(dist, 1, fun4)
 
+#The first order
+near1 <- apply(dist, 1, min)
 Fn1 <- ecdf(near1)
-Fn2 <- ecdf(near2)
-Fn3 <- ecdf(near3)
-Fn4 <- ecdf(near4)
 
 plot(Fn1, ,cex = 0, verticals = T, xaxs="i", yaxs="i", col = "red",
      main = "肯德基前四鄰近的麥當勞的 F 函數", xlab = "距離(公尺)", ylab = "比例")
-plot(Fn2, ,cex = 0, verticals = T, add = T, col = "orange")
-plot(Fn3, ,cex = 0, verticals = T, add = T, col = "yellow")
-plot(Fn4, ,cex = 0, verticals = T, add = T, col = "green")
+
+color <- c("orange", "yellow", "green")
+
+#Second, third & fourth order
+for (i in 1:3) {
+  fun <- function(x) {
+    ret = sort(x)[i+1]
+    return(ret)
+  }
+  
+  neari <- apply(dist, 1, fun)
+  Fn <- ecdf(neari)
+  plot(Fn, cex = 0, verticals = T, add = T, col = color[i])
+}
 ```
 
