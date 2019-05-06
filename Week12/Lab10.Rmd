@@ -1,0 +1,101 @@
+###空間分析　 綜合練習(實習10)
+####地理二　B06208001　龔泓愷
+
+    繪製出麥當勞(MIC)與肯德基(KFC)之間的 Dual KDE 地圖
+    
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(GISTools)
+library(ggtern)
+library(splancs)
+Fastfood <- readOGR(dsn = "./data", layer = "Tpe_Fastfood", encoding="utf8")
+Popn <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+```
+
+```{r warning=FALSE}
+#Filter Out TPE
+TPE <- subset(Popn, COUNTY == "臺北市")
+TPE_lim=c(TPE@bbox[1,], TPE@bbox[2,]) #Boundary
+
+#Cencus Density Calculation
+TPE$CENCUS <- TPE$A0A14_CNT + TPE$A15A64_CNT + TPE$A65UP_CNT #Census Total
+TPE$AREA <- poly.areas(TPE) #District Area (person/m2)
+TPE$DENSITY <- TPE$CENCUS / TPE$AREA
+
+#Combine the Density with Fastfood Restaurant
+Fastfood.attr <- Fastfood@data
+Fastfood.attr$TYPE_99 <- as.numeric(as.character(Fastfood.attr$TYPE_99))
+Fastfood.attr$DENSITY <- 0 #Assign value in advance
+TPE.attr <- TPE@data
+
+for (i in 1:nrow(Fastfood.attr)) {
+  for (j in 1:nrow(TPE.attr)) {
+    if (Fastfood.attr[i,]$TOWN == TPE.attr[j,]$TOWN) {
+      Fastfood.attr[i,]$DENSITY = TPE.attr[j,]$DENSITY
+    }
+  }
+}
+
+#Filter Out MIC, KFC
+MIC.attr <- subset(Fastfood.attr, STORE == "MIC")
+KFC.attr <- subset(Fastfood.attr, STORE == "KFC")
+
+
+#Weighted KDE Calculation
+#x, y, search radius, resolution
+KDE.MIC.W <- kde2d.weighted(MIC.attr$X_COOR, MIC.attr$Y_COOR, 2000, 100, 
+                            lims = TPE_lim, w = MIC.attr$TYPE_99 * MIC.attr$DENSITY)
+KDE.KFC.W <- kde2d.weighted(KFC.attr$X_COOR, KFC.attr$Y_COOR, 2000, 100, 
+                            lims = TPE_lim, w = KFC.attr$TYPE_99 * KFC.attr$DENSITY)
+
+KDE.DIFF <- KDE.MIC.W
+KDE.DIFF$z <- KDE.MIC.W$z - KDE.KFC.W$z
+
+#Plot KDE Map
+image(KDE.DIFF, asp = 1) #Remain x/y ratio
+masker <- poly.outer(as.points(TPE@bbox[1,], TPE@bbox[2,]), TPE) 
+add.masking(masker, col = "white")
+plot(TPE, add = T)
+```
+
+    繪製出高階鄰居的 F 函數：肯德基前四鄰近的麥當勞
+    
+```{r results='hide', message = F, warning = F}
+MIC <- subset(Fastfood, STORE == "MIC")
+KFC <- subset(Fastfood, STORE == "KFC")
+```
+
+```{r}
+#Customized function to return K-order nearest
+fun2 <- function(x) {
+  ret = sort(x)[2]
+  return(ret)
+}
+fun3 <- function(x) {
+  ret = sort(x)[3]
+  return(ret)
+}
+fun4 <- function(x) {
+  ret = sort(x)[4]
+  return(ret)
+}
+
+#gDistance to get the distance, and apply the function above
+dist <- gDistance(MIC, KFC, byid = T)
+near1 <- apply(dist, 1, min)
+near2 <- apply(dist, 1, fun2)
+near3 <- apply(dist, 1, fun3)
+near4 <- apply(dist, 1, fun4)
+
+Fn1 <- ecdf(near1)
+Fn2 <- ecdf(near2)
+Fn3 <- ecdf(near3)
+Fn4 <- ecdf(near4)
+
+plot(Fn1, ,cex = 0, verticals = T, xaxs="i", yaxs="i", col = "red",
+     main = "肯德基前四鄰近的麥當勞的 F 函數", xlab = "距離(公尺)", ylab = "比例")
+plot(Fn2, ,cex = 0, verticals = T, add = T, col = "orange")
+plot(Fn3, ,cex = 0, verticals = T, add = T, col = "yellow")
+plot(Fn4, ,cex = 0, verticals = T, add = T, col = "green")
+```
+
