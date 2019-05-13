@@ -1,0 +1,117 @@
+###空間分析　 期中考2
+####地理二　B06208001　龔泓愷
+```{r warning=FALSE, message=FALSE, results=FALSE}
+setwd("D:/GitHub/107-Spatial-Analysis/Week13")
+library(GISTools);library(rgdal);library(sp);library(aspace);library(spatstat);library(raster)
+
+##Read In Data
+JR = readOGR(dsn = "./data", layer = "JR", encoding="utf8") #UTM54N
+
+toshin = readOGR(dsn = "./data", layer = "toshin", encoding="utf8") #WGS84
+toshin = spTransform(toshin, JR@proj4string) #轉成UTM54N
+
+metro.data = read.csv("./data/metro.csv")
+#讀取到的是經緯度，先套用WGS84
+metro = SpatialPointsDataFrame(cbind(metro.data$LON, metro.data$LAT), metro.data,
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84"))
+metro = spTransform(metro, JR@proj4string) #轉成UTM54N
+metro.toshin = gIntersection(toshin, metro) #抓出都心的地下鐵
+```
+
+##(一)
+
+```{r results=FALSE}
+plot(toshin)
+K.sde <- calc_sde(points = metro.toshin@coords[,1:2]) #標準橢圓
+plot_sde(plotnew = FALSE, plotcentre = T, centre.col = "#483D8B", 
+         sde.col = "#483D8B", sde.lwd = 2, titletxt = "", plotpoints = T) #center, points一起畫
+M.mea <- mean_centre(points = metro.toshin@coords[,1:2])
+points(M.mea$CENTRE.x, M.mea$CENTRE.y, col="red", cex=1.4, pch=20)
+legend("bottomleft", legend = c('地下鐵點位', '平均中心', '標準橢圓'), pch = c(1, 20, 20), col = c("black" ,"red", "#483D8B"), cex=1)
+```
+
+##(二.1)
+
+```{r}
+toshin.union = gUnaryUnion(toshin) #melt
+metro.ppp <- ppp(metro.toshin@coords[,1], metro.toshin@coords[,2], as.owin(toshin.union))
+plot(metro.ppp)
+nnd <- nndist(metro.ppp, k=1)
+d1 <- mean(nnd); d1 # mean of the nearest
+```
+
+    車站到下一個最近的車站，平均距離約為564公尺
+
+##(二.2)
+
+    H0：都心地下鐵和其最近點距離的平均，與隨機分布各點和其最近點距離的平均相同(分布型態為隨機)
+    H1：都心地下鐵和其最近點距離的平均，大於隨機分布各點和其最近點距離的平均(分布型態為分散)
+    單尾檢定，顯著水準：0.05
+
+```{r}
+# Random point 
+random <- vector()
+for (i in 1:999) {
+  nn1 <- rpoint(length(metro.toshin), win = as.owin(toshin.union))
+  nnd1 <- nndist(nn1, k=1)
+  random[i] <- mean(nnd1)
+}
+
+# Frequency plot
+hist(random, main = "Monte Carlo Significance Test", xlim = c(350, 650))
+abline(v = d1, col = "red")
+
+# Get no.5, no.95
+random <- sort(random)
+nnd.95 <- random[950]
+d1 > nnd.95
+```
+
+    p_value < 0.05
+
+    在顯著水準為0.05的情況下，因為p_value < 0.05，拒絕虛無假說
+    結果統計上顯著，因此能下“都心地下鐵分布型態為分散”的結論
+    
+##(三.1)
+
+```{r}
+color <- c("red", "orange", "yellow", "green")
+plot(c(0, 2000), c(0,1), type = "n", xaxs = "i", yaxs = "i", xlab = "距離", ylab = "G")
+for(i in 1:4) {
+  lines(ecdf(nndist(metro.ppp, k= i)), col = color[i], cex = 0, lwd = 3, verticals = T)
+}
+abline(v = 1000, col = "blue")
+```
+
+##(三.2)
+
+```{r}
+count = 0
+for(i in 1:length(metro.toshin)){
+  if (nndist(metro.ppp, k= 3)[i] <= 1000) {
+    count = count + 1
+  }
+}
+count/length(metro.toshin)
+```
+
+    從上圖與計算結果，能得知約有69.7%的地鐵站在1公里內能到達另外三個車站
+
+##(四)
+
+```{r warning=F}
+# KDE Calculation
+KDE1 = kde.points(JR, 2000, 100, toshin.union)
+KDE2 = kde.points(metro.toshin, 2000, 100, toshin.union)
+
+# Dual KDE Calculation
+KDE1.R = raster(KDE1)
+KDE2.R = raster(KDE2)
+KDE.DIFF = KDE1.R - KDE2.R #raster可直接相減
+
+# KDE map
+plot(KDE.DIFF) #KDE圖
+masker = poly.outer(KDE.DIFF, toshin.union) #建立遮罩
+add.masking(masker, col="white") #覆蓋遮罩
+plot(toshin, add=T) #加邊框
+```
