@@ -1,0 +1,10 @@
+###空間分析　 實習11
+####地理二　B06208001　龔泓愷
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(GISTools)
+library(spdep)
+
+Popn <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+```
+
