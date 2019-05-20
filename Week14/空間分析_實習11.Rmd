@@ -1,10 +1,25 @@
-###空間分析　 實習11
-####地理二　B06208001　龔泓愷
+### 空間分析　 實習11    
+#### 地理二　B06208001　龔泓愷   
+
 ```{r results='hide', message = F, warning = F}
 library(rgdal)
 library(GISTools)
 library(spdep)
 
-Popn <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+TW <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
 ```
+
+> 計算以下統計量與繪製圖表，說明其參數設定，並解釋其意義
+
+    鄰近：Contiguity(Queen)
+    列標準化Row-standardized：TRUE
+
+```{r}
+TW.nb <- poly2nb(TW) #相接相鄰，預設queen=T
+```
+
+    summary(TW.nb) #可以用來看鄰近幾個鄉鎮
+    coords <- coordinates(TW)
+    plot(TW)
+    plot(TW.nb, coords, add=T) #把鄰近情況給畫出來
 
