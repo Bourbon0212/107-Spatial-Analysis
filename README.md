@@ -17,4 +17,4 @@ Department：臺大地理二
 #### Week11：[Lab9](https://bourbon0212.github.io/107-Spatial-Analysis/Week11/空間分析_實習9.html)       
 #### Week12：[Lab10](https://bourbon0212.github.io/107-Spatial-Analysis/Week12/Lab10.html)  
 #### Midterm2：[Answer Sheet](https://bourbon0212.github.io/107-Spatial-Analysis/Week13/SA_Mid2.html)，[Test Paper](https://ceiba.ntu.edu.tw/course/3b8fe1/content/SA_Mid2.pdf)      
-#### Week14：[Lab11](https://bourbon0212.github.io/107-Spatial-Analysis/Week14/空間分析_實習11.html)，[HW9](https://bourbon0212.github.io/107-Spatial-Analysis/Week14/空間分析_作業9.html)
+#### Week14：[Lab11](https://bourbon0212.github.io/107-Spatial-Analysis/Week14/空間分析_實習11.html)，[HW9](https://bourbon0212.github.io/107-Spatial-Analysis/Week14/空間分析作業9.html)
