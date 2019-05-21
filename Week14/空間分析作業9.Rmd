@@ -1,0 +1,59 @@
+### 空間分析　 作業9    
+#### 地理二　B06208001　龔泓愷  
+
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(GISTools)
+library(spdep)
+library(ggplot2)
+setwd("D:/GitHub/107-Spatial-Analysis/Week14")
+TW <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+#人口密度
+TW$CENCUS <- TW$A0A14_CNT + TW$A15A64_CNT + TW$A65UP_CNT
+TW$AREA <- poly.areas(TW) / 10 ^ 6 
+TW$DENSITY <- TW$CENCUS / TW$AREA #District Area (person/km2)
+```
+
+> 以Contiguity定義鄰近，繪製各鄉鎮的鄰居數的直方圖。
+
+```{r}
+TW.nb <- poly2nb(TW) #相接相鄰，預設queen=T
+summary(TW.nb) #用來看鄰近幾個鄉鎮
+num <- c(0:11)
+count <- c(11,4,10,29,45,96,90,52,22,6,2,1)
+result <- data.frame(num, count)
+ggplot(result, aes(x = num, y = count)) +
+  geom_col() + 
+  ggtitle("各鄉鎮的鄰居數的直方圖") + theme_minimal()
+```
+
+> 找出台灣本島最多鄰居的鄉鎮是哪一個? (TOWN_ID)
+
+
+    ## 1 most connected region:
+    ## 230 with 11 links
+
+```{r}
+as.character(TW@data[230,]$TOWN)
+as.numeric(as.character(TW@data[230,]$TOWN_ID))
+```
+
+> 繪製台灣各鄉鎮的1st-order鄰居人口密度的面量圖。
+
+```{r}
+coords <- coordinates(TW) #產生polygon中心點座標
+TW.knn <- knn2nb(knearneigh(coords, k=1)) #找最近的一個
+TW.knn.w <- nb2listw(TW.knn, zero.policy=T) #鄰近目錄，預設style="W"(列標準化)
+
+lags_density <- vector()
+for(i in 1:368){
+  index <- unlist(TW.knn.w$neighbours[i])
+  lags_density[i] <- TW$DENSITY[index]
+}
+
+TW$LAGS <- lags_density
+
+shades <- auto.shading(TW@data$LAGS, n = 5, cols = brewer.pal(5, "Blues")) 
+choropleth(TW, TW@data$LAGS, shades,
+           xlim=c(97131.72,327759.52), ylim = c(2409189,2818715)) 
+```

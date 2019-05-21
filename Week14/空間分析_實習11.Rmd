@@ -5,7 +5,6 @@
 library(rgdal)
 library(GISTools)
 library(spdep)
-
 TW <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
 ```
 
@@ -23,3 +22,66 @@ TW.nb <- poly2nb(TW) #相接相鄰，預設queen=T
     plot(TW)
     plot(TW.nb, coords, add=T) #把鄰近情況給畫出來
 
+```{r}
+TW.nb.w <- nb2listw(TW.nb, zero.policy=T) #鄰近目錄，預設style="W"(列標準化)
+TW$CENCUS <- TW$A0A14_CNT + TW$A15A64_CNT + TW$A65UP_CNT
+TW$AREA <- poly.areas(TW) / 10 ^ 6 
+TW$DENSITY <- TW$CENCUS / TW$AREA #District Area (person/km2)
+```
+
+    Moran’s I coefficient
+    
+```{r}
+M <- moran.test(TW$DENSITY, listw=TW.nb.w, zero.policy=T); M #randomisation #人口密度，listw:空間權重，zero:孤立點處理方式
+```
+
+    Monte-Carlo simulation
+    
+```{r}
+mc <- moran.mc(TW$DENSITY, listw=TW.nb.w, nsim=999, zero.policy=T)
+hist(mc$res) #畫圖
+abline(v=M$estimate[1], col="red")
+```
+
+    Moran scatter plot
+    
+```{r}
+moran.plot(TW$DENSITY, TW.nb.w, zero.policy=T)
+#lag: 鄰居的平均
+```
+
+    Correlogram
+
+```{r}
+cor <- sp.correlogram(TW.nb, TW$DENSITY, order=10, 
+                      method="I", style="W", zero.policy=T)
+print(cor); plot(cor)
+```
+
+> 利用以下三種不同的空間鄰近定義，計算Moran’s I coefficient，比較其數値的差異，並討論可能的原因。
+
+
+    Contiguity
+
+```{r}
+M$estimate[1]
+```
+
+    K-nearest Neighbors (KNN)
+
+```{r}
+coords <- coordinates(TW)
+TW.knn <- knn2nb(knearneigh(coords, k=2)) #找最近的兩個
+TW.knn.w <- nb2listw(TW.knn, zero.policy=T) #鄰近目錄，預設style="W"(列標準化)
+M.k <- moran.test(TW$DENSITY, listw=TW.knn.w, zero.policy=T)
+M.k$estimate[1]
+```
+
+    Distance-based
+    
+```{r}
+TW.d <- dnearneigh(coords, d1=0, d2=20000) #d1:中心點，d2:範圍
+TW.d.w <- nb2listw(TW.d, zero.policy=T) #鄰近目錄，預設style="W"(列標準化)
+M.d <- moran.test(TW$DENSITY, listw=TW.d.w, zero.policy=T)
+M.d$estimate[1]
+```
