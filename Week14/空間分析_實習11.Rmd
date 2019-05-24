@@ -34,6 +34,11 @@ TW$DENSITY <- TW$CENCUS / TW$AREA #District Area (person/km2)
 ```{r}
 M <- moran.test(TW$DENSITY, listw=TW.nb.w, zero.policy=T); M #randomisation #人口密度，listw:空間權重，zero:孤立點處理方式
 ```
+    
+    從 p-value < 2.2e-16 可看出其統計上非常顯著
+    從 Moran I statistic: 0.703816518 可看出其空間自相關程度較高，且為群聚
+
+<br>
 
     Monte-Carlo simulation
     
@@ -43,12 +48,20 @@ hist(mc$res) #畫圖
 abline(v=M$estimate[1], col="red")
 ```
 
+    從紅線位置可看出其不為隨機亂排的現象，且空間自相關較高，屬於群聚
+
+<br>
+
     Moran scatter plot
     
 ```{r}
 moran.plot(TW$DENSITY, TW.nb.w, zero.policy=T)
 #lag: 鄰居的平均
 ```
+
+    此圖點大致呈現正相關，亦即台灣村里與其鄰近村里的人口密度空間正相關
+    
+<br>
 
     Correlogram
 
@@ -58,8 +71,9 @@ cor <- sp.correlogram(TW.nb, TW$DENSITY, order=10,
 print(cor); plot(cor)
 ```
 
-> 利用以下三種不同的空間鄰近定義，計算Moran’s I coefficient，比較其數値的差異，並討論可能的原因。
+    此圖可大致看出大約到 3rd-Order 空間自相關皆為正
 
+> 利用以下三種不同的空間鄰近定義，計算Moran’s I coefficient，比較其數値的差異，並討論可能的原因。
 
     Contiguity
 
@@ -85,3 +99,7 @@ TW.d.w <- nb2listw(TW.d, zero.policy=T) #鄰近目錄，預設style="W"(列標�
 M.d <- moran.test(TW$DENSITY, listw=TW.d.w, zero.policy=T)
 M.d$estimate[1]
 ```
+
+    第一種情形只考慮最鄰近，第二種情形則納入最近的兩個
+    從前面 Correlogram 可看出到 2nd-Order 空間自相關都蠻高的
+    而最後一個範圍設為 20km，範圍較大，空間自相關較不明顯
