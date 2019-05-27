@@ -1,0 +1,66 @@
+### 空間分析　 實習12    
+#### 地理二　B06208001　龔泓愷   
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(GISTools)
+library(spdep)
+setwd("D:/GitHub/107-Spatial-Analysis/Week15")
+TW <- readOGR(dsn = "./data", layer = "Popn_TWN2", encoding="utf8")
+TW$CENCUS <- TW$A0A14_CNT + TW$A15A64_CNT + TW$A65UP_CNT
+TW$OLD <- TW$A65UP_CNT / TW$CENCUS
+```
+
+    定義鄰近：相接相鄰，預設queen=T
+    轉成鄰近目錄，預設style="W"(列標準化)
+  
+```{r}
+TW.nb <- poly2nb(TW)
+TW.nb.w <- nb2listw(TW.nb, zero.policy = T) # 離島
+```
+
+>原始數值
+
+```{r}
+lm.palette <- colorRampPalette(c("white","orange", "red"), space = "rgb")
+spplot(TW, zcol="OLD", col.regions=lm.palette(20), main="Old Prop")
+```
+
+
+> Local Moran (LISA map)
+
+```{r}
+LISA <- localmoran(TW$OLD, TW.nb.w, zero.policy = T, alternative = "two.sided")
+head(LISA)
+diff <- TW$OLD - mean(TW$OLD) # diff看自己和平均比起來算是H還是L 
+
+z <- LISA[,4]
+quad <- c()
+quad[diff>0 & z>0] <- 1 # H-H
+quad[diff<0 & z>0] <- 2 # L-L
+quad[diff>0 & z<0] <- 3 # H-L
+quad[diff<0 & z<0] <- 4 # L-H
+quad[LISA[,5]>0.05] <- 5 # 不顯著，設定雙尾所以用0.05比較就可以
+
+colors <- c("red", "blue", "lightpink", "skyblue2", rgb(.95, .95, .95))
+plot(TW, border="grey", col=colors[quad], main = "LISA Map")
+legend("bottomright",legend=c("HH","LL","HL","LH","NS"),
+       fill=colors,bty="n",cex=0.7,y.intersp=1,x.intersp=1)
+```
+
+> Standardized Gi * values
+
+```{r}
+TW.nb.in <- include.self(TW.nb) # 鄰近定義包含自己
+TW.nb.w.in <- nb2listw(TW.nb.in)
+Gi <- localG(TW$OLD, TW.nb.w.in)
+
+LG <- as.vector(Gi)
+quad <- c()
+quad[LG >= 1.645] <- 1 # cluster
+quad[LG < 1.645] <- 2 # non-cluster
+
+colors=c("red", "lightgray")
+plot(TW, border="grey", col=colors[quad], main = "Cluster Map")
+legend("bottomright", c("Cluster","Non-cluster"),
+       fill=colors, bty="n", cex=0.7, y.intersp=1, x.intersp=1)
+```
