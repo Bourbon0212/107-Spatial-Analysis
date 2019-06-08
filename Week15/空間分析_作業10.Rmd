@@ -1,0 +1,12 @@
+### 空間分析　 作業10    
+#### 地理二　B06208001　龔泓愷   
+```{r results='hide', message = F, warning = F}
+library(rgdal)
+library(GISTools)
+library(spdep)
+setwd("D:/GitHub/107-Spatial-Analysis/Week15")
+LI <- readOGR(dsn = "./data", layer = "Tainan_town", encoding="utf8")
+TOWN <- readOGR(dsn = "./data", layer = "Tainan_li", encoding="utf8")
+LI.attr <- LI@data
+TOWN.attr <- TOWN@data
+```
