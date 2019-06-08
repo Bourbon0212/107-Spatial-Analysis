@@ -1,12 +1,152 @@
-### �Ŷ����R�@ �@�~10    
-#### �a�z�G�@B06208001�@�Ǫl�_   
+### 空間分析　 作業10    
+#### 地理二　B06208001　龔泓愷   
 ```{r results='hide', message = F, warning = F}
 library(rgdal)
 library(GISTools)
 library(spdep)
-setwd("D:/GitHub/107-Spatial-Analysis/Week15")
-LI <- readOGR(dsn = "./data", layer = "Tainan_town", encoding="utf8")
-TOWN <- readOGR(dsn = "./data", layer = "Tainan_li", encoding="utf8")
+setwd("E:/GitHub/107-Spatial-Analysis/Week15")
+LI <- readOGR(dsn = "./data", layer = "Tainan_li", encoding="utf8")
+TOWN <- readOGR(dsn = "./data", layer = "Tainan_town", encoding="utf8")
+School <- readOGR(dsn = "./data", layer = "Schools", encoding="utf8")
 LI.attr <- LI@data
 TOWN.attr <- TOWN@data
+School.attr <- School@data
 ```
+
+    計算各村里學校總數與密度
+
+```{r}
+LI.counts <- poly.counts(School, LI)
+LI$COUNTS <- LI.counts
+LI.density <- LI.counts / LI$AREA
+LI$DENSITY <- LI.density
+```
+
+> 村里學校總數：LISA
+
+```{r}
+LI.nb <- poly2nb(LI) #定義鄰近，相接相鄰，預設queen = T
+LI.nb.w <- nb2listw(LI.nb) #鄰近目錄，預設style="W"(列標準化)
+#雙尾檢定，是否和鄰居相關，進而區分HH, LH, HL, LL
+LI.lisa <- localmoran(LI$COUNTS, LI.nb.w, zero.policy=T, alternative = 'two.sided') 
+head(LI.lisa)
+
+diff <- LI$COUNTS - mean(LI$COUNTS) # diff看自己和平均比起來算是H還是L 
+z <- LI.lisa[,4]
+quad <- c()
+quad[diff>0 & z>0] <- 1 # H-H
+quad[diff<0 & z>0] <- 2 # L-L
+quad[diff>0 & z<0] <- 3 # H-L
+quad[diff<0 & z<0] <- 4 # L-H
+quad[LI.lisa[,5]>0.05] <- 5 # 不顯著，設定雙尾所以用0.05比較就可以
+
+colors = c("red", "blue", "lightpink", "skyblue2", rgb(.95, .95, .95))
+plot(LI, border="grey", col=colors[quad], main = "LISA MAP: School Counts by LI")
+legend("bottomright",legend=c("HH","LL","HL","LH","NS"),fill=colors,bty="n",cex=0.7,y.intersp=1,x.intersp=1)
+```
+
+> 村里學校總數：Gi*
+
+```{r}
+LI.nb.in <- include.self(LI.nb) #Gi*鄰近定義包含自己
+LI.nb.w.in <- nb2listw(LI.nb.in) #鄰近目錄，預設style="W"(列標準化)
+Gi <- localG(LI$COUNTS, LI.nb.w.in)
+
+LG <- as.vector(Gi)
+quad <- c()
+quad[LG >= 1.645] <- 1 # cluster
+quad[LG < 1.645] <- 2 # non-cluster
+
+colors=c("red", rgb(.95, .95, .95))
+plot(LI, border="grey", col=colors[quad], main = "Cluster MAP: School Counts by LI")
+legend("bottomright", c("Cluster","Non-cluster"),
+       fill=colors, bty="n", cex=0.7, y.intersp=1, x.intersp=1)
+```
+
+> 村里學校密度：LISA
+
+```{r}
+#雙尾檢定，是否和鄰居相關，進而區分HH, LH, HL, LL
+LI.lisa <- localmoran(LI$DENSITY, LI.nb.w, zero.policy=T, alternative = 'two.sided') 
+head(LI.lisa)
+
+diff <- LI$DENSITY - mean(LI$DENSITY) # diff看自己和平均比起來算是H還是L 
+z <- LI.lisa[,4]
+quad <- c()
+quad[diff>0 & z>0] <- 1 # H-H
+quad[diff<0 & z>0] <- 2 # L-L
+quad[diff>0 & z<0] <- 3 # H-L
+quad[diff<0 & z<0] <- 4 # L-H
+quad[LI.lisa[,5]>0.05] <- 5 # 不顯著，設定雙尾所以用0.05比較就可以
+
+colors = c("red", "blue", "lightpink", "skyblue2", rgb(.95, .95, .95))
+plot(LI, border="grey", col=colors[quad], main = "LISA MAP: School Density by LI")
+legend("bottomright",legend=c("HH","LL","HL","LH","NS"),fill=colors,bty="n",cex=0.7,y.intersp=1,x.intersp=1)
+```
+
+> 村里學校密度：Gi*
+
+```{r}
+Gi <- localG(LI$DENSITY, LI.nb.w.in)
+
+LG <- as.vector(Gi)
+quad <- c()
+quad[LG >= 1.645] <- 1 # cluster
+quad[LG < 1.645] <- 2 # non-cluster
+
+colors=c("red", rgb(.95, .95, .95))
+plot(LI, border="grey", col=colors[quad], main = "Cluster MAP: School Density by LI")
+legend("bottomright", c("Cluster","Non-cluster"),
+       fill=colors, bty="n", cex=0.7, y.intersp=1, x.intersp=1)
+```
+
+    計算各鄉鎮學校總數
+    
+```{r}
+TOWN.counts <- poly.counts(School, TOWN)
+TOWN$COUNTS <- TOWN.counts
+```
+
+> 鄉鎮學校總數：LISA
+
+```{r}
+TN.nb <- poly2nb(TOWN) #定義鄰近，相接相鄰，預設queen = T
+TN.nb.w <- nb2listw(TN.nb) #鄰近目錄，預設style="W"(列標準化)
+#雙尾檢定，是否和鄰居相關，進而區分HH, LH, HL, LL
+TN.lisa <- localmoran(TOWN$COUNTS, TN.nb.w, zero.policy=T, alternative = 'two.sided') 
+head(TN.lisa)
+
+diff <- TOWN$COUNTS - mean(TOWN$COUNTS) # diff看自己和平均比起來算是H還是L 
+z <- TN.lisa[,4]
+quad <- c()
+quad[diff>0 & z>0] <- 1 # H-H
+quad[diff<0 & z>0] <- 2 # L-L
+quad[diff>0 & z<0] <- 3 # H-L
+quad[diff<0 & z<0] <- 4 # L-H
+quad[TN.lisa[,5]>0.05] <- 5 # 不顯著，設定雙尾所以用0.05比較就可以
+
+colors = c("red", "blue", "lightpink", "skyblue2", rgb(.95, .95, .95))
+plot(TOWN, border="grey", col=colors[quad], main = "LISA MAP: School Counts by TOWN")
+legend("bottomright",legend=c("HH","LL","HL","LH","NS"),fill=colors,bty="n",cex=0.7,y.intersp=1,x.intersp=1)
+```
+
+> 鄉鎮學校總數：Gi*
+
+```{r}
+TN.nb.in <- include.self(TN.nb) #Gi*鄰近定義包含自己
+TN.nb.w.in <- nb2listw(TN.nb.in) #鄰近目錄，預設style="W"(列標準化)
+Gi <- localG(TOWN$COUNTS, TN.nb.w.in)
+
+LG <- as.vector(Gi)
+quad <- c()
+quad[LG >= 1.645] <- 1 # cluster
+quad[LG < 1.645] <- 2 # non-cluster
+
+colors=c("red", rgb(.95, .95, .95))
+plot(TOWN, border="grey", col=colors[quad], main = "Cluster MAP: School Counts by TOWN")
+legend("bottomright", c("Cluster","Non-cluster"),
+       fill=colors, bty="n", cex=0.7, y.intersp=1, x.intersp=1)
+```
+
+    LISA MAP的部分，以村里繪製的相較於以鄉鎮繪製的學校總數圖，能區分更多HL、LH的行政區，可能原因為以村里為單位的較為細緻，且並非所有村里都有學校，計算學校總數時較容易拉開這些差距；而以鄉鎮為單位的，將該鄉鎮學校數量累加，稀釋了這些中間的變異，並將鄉鎮間HH與LL的差異凸顯出來。接著，若是以村里學校密度繪製，僅剩下些許HH行政區落於村里切割較細的地區，此區同時也是繪製學校總數村里圖時的HH行政區。
+    Cluster MAP方面，以村里繪製的與以鄉鎮繪製的學校總數圖呈現的群聚趨勢不太相同，從村里的圖可以看出台南右上區域標示為群聚之村里大多分屬不同鄉鎮，而台南左下區域村里標示為群聚之村里較為聚集，且多屬同一鄉鎮。接著，若是以村里學校密度繪製，受惠於面積校正，標示為群聚之村里大多聚集於村里切割較細的地區。
